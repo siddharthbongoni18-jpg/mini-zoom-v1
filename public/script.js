@@ -1,5 +1,5 @@
 // ===============================
-//   MINI ZOOM - CLIENT LOGIC
+//   MINI ZOOM - CLIENT LOGIC (fixed)
 // ===============================
 
 let socket = null;
@@ -12,22 +12,9 @@ let username = null;
 // ICE servers
 const iceServers = {
   iceServers: [
-    {
-      urls: [
-        "stun:stun.l.google.com:19302",
-        "stun:global.stun.twilio.com:3478"
-      ]
-    },
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject"
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject",
-      credential: "openrelayproject"
-    }
+    { urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"] },
+    { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+    { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
   ]
 };
 
@@ -36,7 +23,6 @@ const iceServers = {
 // ===============================
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body.dataset.page;
-
   if (page === "home") initHomePage();
   if (page === "room") initRoomPage();
 });
@@ -52,27 +38,21 @@ function initHomePage() {
 
   joinForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const room = roomInput.value.trim();
     const name = nameInput.value.trim() || "Guest";
-
     if (!room) {
       errorBox.textContent = "Please enter a room number.";
       return;
     }
 
-    // TEST camera/mic before entering meeting
+    // quick permissions test
     try {
-      await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     } catch (err) {
       alert("Camera or mic error");
       return;
     }
 
-    // GO TO ROOM
     window.location.href = `room.html?room=${room}&name=${encodeURIComponent(name)}`;
   });
 }
@@ -109,14 +89,9 @@ async function initRoomPage() {
 // ===============================
 async function initLocalMedia() {
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
-    });
-
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     const localVideo = document.getElementById("localVideo");
-    localVideo.srcObject = localStream;
-
+    if (localVideo) localVideo.srcObject = localStream;
   } catch (err) {
     console.error("Media error:", err);
     alert("Unable to access camera/microphone.");
@@ -124,41 +99,67 @@ async function initLocalMedia() {
 }
 
 // ===============================
-//   SOCKET.IO EVENTS
+//   SOCKET.IO EVENTS (fixed)
 // ===============================
 function registerSocketEvents() {
 
-  // List of existing users when we join
+  // List of existing users when we join (this event is emitted only to the newly-joined client)
   socket.on("existing-users", (userIds) => {
-    console.log("Existing users:", userIds);
-    userIds.forEach((id) => createPeerConnection(id, true)); // we initiate offer
+    console.log("Existing users (new client):", userIds);
+    // The NEW client should create offers to existing users
+    if (!Array.isArray(userIds) || userIds.length === 0) return;
+    userIds.forEach((id) => createPeerConnection(id, true)); // this side initiates the offer
   });
 
-  // A new user joined
+  // A new user joined (broadcast to existing clients) — existing clients should NOT initiate offers
   socket.on("user-joined", ({ socketId }) => {
-    console.log("New user joined:", socketId);
-    createPeerConnection(socketId, true); // send offer
+    console.log("New user joined (other clients notified):", socketId);
+    // Prepare a peer connection to accept an offer from the newcomer (answerer), but DON'T create an offer.
+    createPeerConnection(socketId, false);
   });
 
-  // Receive offer
+  // Receive offer -> we must answer
   socket.on("offer", async ({ offer, senderId }) => {
     console.log("Received offer from", senderId);
-    await createPeerConnection(senderId, false); // we are the answerer
 
-    await peers[senderId].setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await peers[senderId].createAnswer();
-    await peers[senderId].setLocalDescription(answer);
+    // Ensure we have a peer object
+    if (!peers[senderId]) {
+      createPeerConnection(senderId, false); // become answerer
+    }
 
-    socket.emit("answer", {
-      answer,
-      targetId: senderId
-    });
+    try {
+      await peers[senderId].setRemoteDescription(new RTCSessionDescription(offer));
+    } catch (err) {
+      console.warn("setRemoteDescription (offer) failed:", err);
+      return;
+    }
+
+    try {
+      const answer = await peers[senderId].createAnswer();
+      await peers[senderId].setLocalDescription(answer);
+
+      socket.emit("answer", {
+        answer,
+        targetId: senderId
+      });
+    } catch (err) {
+      console.error("Failed to create/send answer:", err);
+    }
   });
 
-  // Receive answer
+  // Receive answer -> attach as remote description (only initiator receives an answer)
   socket.on("answer", async ({ answer, senderId }) => {
     console.log("Received answer from", senderId);
-    await peers[senderId].setRemoteDescription(new RTCSessionDescription(answer));
+    const pc = peers[senderId];
+    if (!pc) {
+      console.warn("No RTCPeerConnection for senderId (answer). Ignoring.");
+      return;
+    }
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (err) {
+      console.warn("setRemoteDescription (answer) failed:", err);
+    }
   });
 
   // ICE candidate
@@ -193,19 +194,22 @@ function registerSocketEvents() {
 //   CREATE A PEER CONNECTION
 // ===============================
 function createPeerConnection(remoteId, isInitiator) {
+  // avoid duplicates
   if (peers[remoteId]) return;
 
-  console.log("Creating peer:", remoteId);
+  console.log("Creating peer:", remoteId, "initiator?", isInitiator);
 
   const pc = new RTCPeerConnection(iceServers);
   peers[remoteId] = pc;
 
-  // Add local tracks
-  localStream.getTracks().forEach((track) => {
-    pc.addTrack(track, localStream);
-  });
+  // Add local tracks (if localStream is available)
+  if (localStream) {
+    localStream.getTracks().forEach((track) => {
+      pc.addTrack(track, localStream);
+    });
+  }
 
-  // ICE CANDIDATES
+  // ICE CANDIDATES -> forward to server
   pc.onicecandidate = (event) => {
     if (event.candidate) {
       socket.emit("ice-candidate", {
@@ -215,8 +219,9 @@ function createPeerConnection(remoteId, isInitiator) {
     }
   };
 
-  // REMOTE STREAM
+  // REMOTE STREAM handling
   pc.ontrack = (event) => {
+    // attach first incoming stream to a video element
     if (!remoteVideoElements[remoteId]) {
       const video = document.createElement("video");
       video.autoplay = true;
@@ -224,22 +229,38 @@ function createPeerConnection(remoteId, isInitiator) {
       video.className = "video-element remote-video";
       video.srcObject = event.streams[0];
 
-      document.getElementById("remoteVideos").appendChild(video);
+      const container = document.getElementById("remoteVideos");
+      if (container) container.appendChild(video);
       remoteVideoElements[remoteId] = video;
+    } else {
+      // update srcObject if needed
+      remoteVideoElements[remoteId].srcObject = event.streams[0];
     }
   };
 
-  // CREATE OFFER IF INITIATOR
-  if (isInitiator) {
-    setTimeout(async () => {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+  pc.onconnectionstatechange = () => {
+    console.log("Connection state with", remoteId, ":", pc.connectionState);
+    if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+      removePeer(remoteId);
+    }
+  };
 
-      socket.emit("offer", {
-        offer,
-        targetId: remoteId
-      });
-    }, 300);
+  // if this side is initiator -> create offer
+  if (isInitiator) {
+    // small delay to allow handler setup on remote side (helps reduce race conditions)
+    setTimeout(async () => {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        socket.emit("offer", {
+          offer,
+          targetId: remoteId
+        });
+      } catch (err) {
+        console.error("Failed to create/send offer:", err);
+      }
+    }, 200);
   }
 }
 
@@ -248,12 +269,12 @@ function createPeerConnection(remoteId, isInitiator) {
 // ===============================
 function removePeer(socketId) {
   if (peers[socketId]) {
-    peers[socketId].close();
+    try { peers[socketId].close(); } catch (e) {}
     delete peers[socketId];
   }
 
   if (remoteVideoElements[socketId]) {
-    remoteVideoElements[socketId].remove();
+    try { remoteVideoElements[socketId].remove(); } catch (e) {}
     delete remoteVideoElements[socketId];
   }
 }
@@ -264,12 +285,11 @@ function removePeer(socketId) {
 function updateParticipants(users) {
   const list = document.getElementById("participantsList");
   if (!list) return;
-
   list.innerHTML = "";
-
+  // server sends an object map { socketId: name }
   Object.entries(users).forEach(([id, name]) => {
     const li = document.createElement("li");
-    li.textContent = name + (id === socket.id ? " (You)" : "");
+    li.textContent = name + (socket && id === socket.id ? " (You)" : "");
     list.appendChild(li);
   });
 }
@@ -286,25 +306,22 @@ if (chatForm) {
     e.preventDefault();
     const msg = chatInput.value.trim();
     if (!msg) return;
-
-    socket.emit("chat-message", {
-      roomId,
-      message: msg,
-      name: username
-    });
-
+    socket.emit("chat-message", { roomId, message: msg, name: username });
     addChatMessage("You", msg);
     chatInput.value = "";
   });
 }
 
 function addChatMessage(name, msg) {
+  if (!chatMessages) return;
   const div = document.createElement("div");
   div.className = "chat-msg";
-  div.innerHTML = `<strong>${name}:</strong> ${msg}`;
+  div.innerHTML = `<strong>${escapeHtml(name)}:</strong> ${escapeHtml(msg)}`;
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ===============================
 //   CONTROLS (MUTE, CAMERA, SCREEN)
@@ -314,46 +331,47 @@ function setupControls() {
   const btnCam = document.getElementById("btnToggleCamera");
   const btnScreen = document.getElementById("btnShareScreen");
 
-  // Mic
-  btnMic.addEventListener("click", () => {
-    const audioTrack = localStream.getAudioTracks()[0];
-    audioTrack.enabled = !audioTrack.enabled;
-    btnMic.textContent = audioTrack.enabled ? "🎙️ Mute" : "🔇 Unmute";
-  });
+  if (btnMic) {
+    btnMic.addEventListener("click", () => {
+      const audioTrack = localStream && localStream.getAudioTracks()[0];
+      if (!audioTrack) return;
+      audioTrack.enabled = !audioTrack.enabled;
+      btnMic.textContent = audioTrack.enabled ? "🎙️ Mute" : "🔇 Unmute";
+    });
+  }
 
-  // Camera
-  btnCam.addEventListener("click", () => {
-    const videoTrack = localStream.getVideoTracks()[0];
-    videoTrack.enabled = !videoTrack.enabled;
-    btnCam.textContent = videoTrack.enabled ? "📷 Camera Off" : "📷 Camera On";
-  });
+  if (btnCam) {
+    btnCam.addEventListener("click", () => {
+      const videoTrack = localStream && localStream.getVideoTracks()[0];
+      if (!videoTrack) return;
+      videoTrack.enabled = !videoTrack.enabled;
+      btnCam.textContent = videoTrack.enabled ? "📷 Camera Off" : "📷 Camera On";
+    });
+  }
 
-  // Screen share
-  btnScreen.addEventListener("click", async () => {
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true
-      });
+  if (btnScreen) {
+    btnScreen.addEventListener("click", async () => {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = screenStream.getVideoTracks()[0];
 
-      const screenTrack = screenStream.getVideoTracks()[0];
-
-      // Replace track for all peers
-      for (const id in peers) {
-        const sender = peers[id].getSenders().find(s => s.track.kind === "video");
-        if (sender) sender.replaceTrack(screenTrack);
-      }
-
-      // When user stops screen share, revert to camera
-      screenTrack.onended = () => {
-        const cameraTrack = localStream.getVideoTracks()[0];
+        // Replace track for all peers
         for (const id in peers) {
-          const sender = peers[id].getSenders().find(s => s.track.kind === "video");
-          if (sender) sender.replaceTrack(cameraTrack);
+          const sender = peers[id].getSenders().find(s => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(screenTrack);
         }
-      };
 
-    } catch (err) {
-      console.error("Screen share error:", err);
-    }
-  });
+        // When user stops screen share, revert to camera
+        screenTrack.onended = () => {
+          const cameraTrack = localStream && localStream.getVideoTracks()[0];
+          for (const id in peers) {
+            const sender = peers[id].getSenders().find(s => s.track && s.track.kind === "video");
+            if (sender && cameraTrack) sender.replaceTrack(cameraTrack);
+          }
+        };
+      } catch (err) {
+        console.error("Screen share error:", err);
+      }
+    });
+  }
 }
