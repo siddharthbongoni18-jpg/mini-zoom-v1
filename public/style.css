@@ -266,16 +266,25 @@ body {
 /* Controls bar */
 .controls-bar {
   display: flex;
-  gap: 10px;
-  margin-top: 6px;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
+
 .control-btn {
-  flex: 1;
+  padding: 12px 24px;
   background: rgba(10, 10, 25, 0.95);
   color: var(--text-main);
   border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  min-width: 120px;
+  text-align: center;
+  flex-shrink: 0;
 }
+
 
 .control-btn:hover {
   background: rgba(25, 25, 45, 0.95);
