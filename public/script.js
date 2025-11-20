@@ -89,14 +89,38 @@ async function initRoomPage() {
 // ===============================
 async function initLocalMedia() {
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    const localVideo = document.getElementById("localVideo");
-    if (localVideo) localVideo.srcObject = localStream;
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true
+    });
+
+    // Create wrapper for local video (same style as remote)
+    const wrapper = document.createElement("div");
+    wrapper.className = "remote-video-wrapper";
+
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true; // important!
+    video.srcObject = localStream;
+    video.className = "remote-video";
+
+    // Label (You)
+    const label = document.createElement("div");
+    label.textContent = "You";
+    label.className = "video-label";
+
+    wrapper.appendChild(video);
+    wrapper.appendChild(label);
+
+    document.getElementById("remoteVideos").appendChild(wrapper);
+
   } catch (err) {
     console.error("Media error:", err);
     alert("Unable to access camera/microphone.");
   }
 }
+
 
 // ===============================
 //   SOCKET.IO EVENTS (fixed)
@@ -201,6 +225,8 @@ function createPeerConnection(remoteId, isInitiator) {
 
   const pc = new RTCPeerConnection(iceServers);
   peers[remoteId] = pc;
+  peers[remoteId].username = remoteId;
+
 
   // Add local tracks (if localStream is available)
   if (localStream) {
@@ -220,23 +246,39 @@ function createPeerConnection(remoteId, isInitiator) {
   };
 
   // REMOTE STREAM handling
-  pc.ontrack = (event) => {
-    // attach first incoming stream to a video element
-    if (!remoteVideoElements[remoteId]) {
-      const video = document.createElement("video");
-      video.autoplay = true;
-      video.playsInline = true;
-      video.className = "video-element remote-video";
-      video.srcObject = event.streams[0];
+  // REMOTE STREAM handler (FIXED for equal grid)
+pc.ontrack = (event) => {
+  if (!remoteVideoElements[remoteId]) {
 
-      const container = document.getElementById("remoteVideos");
-      if (container) container.appendChild(video);
-      remoteVideoElements[remoteId] = video;
-    } else {
-      // update srcObject if needed
-      remoteVideoElements[remoteId].srcObject = event.streams[0];
-    }
-  };
+    // Wrapper so CSS grid works properly
+    const wrapper = document.createElement("div");
+    wrapper.className = "remote-video-wrapper";
+
+    // Video element
+    const video = document.createElement("video");
+    video.autoplay = true;
+    video.playsInline = true;
+    video.className = "remote-video";
+    video.srcObject = event.streams[0];
+
+    // Label for remote user
+    const label = document.createElement("div");
+    label.textContent = peers[remoteId]?.username || "User";
+    label.className = "video-label";
+
+    wrapper.appendChild(video);
+    wrapper.appendChild(label);
+
+    document.getElementById("remoteVideos").appendChild(wrapper);
+
+    remoteVideoElements[remoteId] = wrapper;
+  } else {
+    // Update video stream if needed
+    const videoEl = remoteVideoElements[remoteId].querySelector("video");
+    if (videoEl) videoEl.srcObject = event.streams[0];
+  }
+};
+
 
   pc.onconnectionstatechange = () => {
     console.log("Connection state with", remoteId, ":", pc.connectionState);
