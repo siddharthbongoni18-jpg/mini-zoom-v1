@@ -1,215 +1,156 @@
-// server.js
-// ============================================================================
-// This is our Node.js backend server.
-//
-// It does 3 main jobs:
-//
-// 1. Serve the frontend files (index.html, room.html, style.css, script.js).
-// 2. Run Socket.IO for "signaling" and chat:
-//      - join-room
-//      - WebRTC offers/answers
-//      - ICE candidates
-//      - chat messages
-// 3. Provide WebRTC ICE servers (STUN + TURN) so peers can connect even on
-//    different Wi-Fi / hotspot / behind NAT.
-//
-// IMPORTANT CONCEPTS (simple):
-// - STUN: helps your browser find its public IP/port.
-// - TURN: relays audio/video when direct P2P is blocked (different Wi-Fi,
-//         strict firewalls, mobile data, etc.).
-// - Socket.IO: used only for signaling + chat, NOT for video/audio itself.
-// ============================================================================
+// ==========================
+//      MINI ZOOM SERVER
+// ==========================
 
-require("dotenv").config();
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const express = require("express");
-const http = require("http");
-const path = require("path");
-const { Server } = require("socket.io");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
 
-// We allow any origin for simplicity (localhost, ngrok URL, etc.)
 const io = new Server(server, {
   cors: {
     origin: "*",
-  },
+    methods: ["GET", "POST"],
+  }
 });
 
-// Serve static files from /public
+// Serve static files (public folder)
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ============================================================================
-// ICE SERVERS SETUP (STUN + TURN)
-// ============================================================================
-//
-// We will use OpenRelay (Metered) as a FREE TURN server by default.
-// You can override these with your own TURN server by setting .env values.
-//
-// In your .env you can put (recommended):
-//
-//   TURN_USERNAME=openrelayproject
-//   TURN_PASSWORD=openrelayproject
-//   PORT=3000
-//
-// Or, if you have your own TURN server, change them there.
-// ============================================================================
-
-const TURN_USERNAME =
-  process.env.TURN_USERNAME && process.env.TURN_USERNAME.trim().length > 0
-    ? process.env.TURN_USERNAME.trim()
-    : "openrelayproject";
-
-const TURN_PASSWORD =
-  process.env.TURN_PASSWORD && process.env.TURN_PASSWORD.trim().length > 0
-    ? process.env.TURN_PASSWORD.trim()
-    : "openrelayproject";
-
-// Base STUN servers (discover public IP/port)
-const iceServers = [
-  {
-    urls: [
-      "stun:stun.l.google.com:19302",
-      "stun:openrelay.metered.ca:3478",
-    ],
-  },
-];
-
-// Add TURN servers (relay media when needed)
-if (TURN_USERNAME && TURN_PASSWORD) {
-  iceServers.push({
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turns:openrelay.metered.ca:443?transport=tcp",
-    ],
-    username: TURN_USERNAME,
-    credential: TURN_PASSWORD,
-  });
+// ==========================
+//   IN-MEMORY USER STORAGE
+// ==========================
+let rooms = {}; 
+/*
+rooms = {
+    "1234": {
+        "SocketID1": "Alice",
+        "SocketID2": "Siddu"
+    }
 }
+*/
 
-console.log("ICE servers being used:", JSON.stringify(iceServers, null, 2));
-
-// ============================================================================
-// ROOM / SOCKET.IO LOGIC
-// ============================================================================
-//
-// rooms object structure:
-//
-// rooms = {
-//   [roomId]: {
-//       [socketId]: username
-//   }
-// }
-// ============================================================================
-
-const rooms = {};
+// ==========================
+//     SOCKET.IO HANDLERS
+// ==========================
 
 io.on("connection", (socket) => {
-  console.log("✅ A user connected:", socket.id);
+  console.log("Connected:", socket.id);
 
-  // When a client wants to join a room
-  socket.on("join-room", ({ roomId, username }) => {
-    console.log(
-      `📢 Socket ${socket.id} joining room "${roomId}" as "${username}"`
-    );
-
-    // Save on socket for easy access later (disconnect, chat, etc.)
-    socket.data.roomId = roomId;
-    socket.data.username = username;
-
-    // Join Socket.IO room
+  // --------------------------
+  // USER JOINS A ROOM
+  // --------------------------
+  socket.on("join-room", ({ roomId, name }) => {
     socket.join(roomId);
 
-    // Track in our in-memory room list
+    // Create room if not exist
     if (!rooms[roomId]) rooms[roomId] = {};
-    rooms[roomId][socket.id] = username;
 
-    // Build a participants array for this room
-    const participants = Object.entries(rooms[roomId]).map(([id, name]) => ({
-      id,
-      username: name,
-    }));
+    // Save user
+    rooms[roomId][socket.id] = name || "Guest";
 
-    // Tell the new user they joined + give them participants + ICE servers
-    socket.emit("room-joined", {
-      roomId,
-      yourId: socket.id,
-      participants,
-      iceServers, // <-- client uses this in RTCPeerConnection
-    });
+    console.log(`User ${socket.id} (${rooms[roomId][socket.id]}) joined room ${roomId}`);
 
-    // Tell everyone else in the room that a new user joined
+    // Send existing users to new user
+    const existingUsers = Object.keys(rooms[roomId]).filter(id => id !== socket.id);
+    socket.emit("existing-users", existingUsers);
+
+    // Notify others in the room
     socket.to(roomId).emit("user-joined", {
       socketId: socket.id,
-      username,
+      name: rooms[roomId][socket.id]
+    });
+
+    // Update participants list
+    io.to(roomId).emit("room-users", rooms[roomId]);
+  });
+
+  // --------------------------
+  // OFFER SENT TO A USER
+  // --------------------------
+  socket.on("offer", ({ offer, targetId }) => {
+    io.to(targetId).emit("offer", {
+      offer,
+      senderId: socket.id
     });
   });
 
-  // Forward WebRTC OFFER from one peer to another
-  socket.on("signal-offer", ({ roomId, to, offer }) => {
-    console.log(`📨 Offer from ${socket.id} to ${to} in room "${roomId}"`);
-    io.to(to).emit("signal-offer", { from: socket.id, offer });
+  // --------------------------
+  // ANSWER SENT BACK
+  // --------------------------
+  socket.on("answer", ({ answer, targetId }) => {
+    io.to(targetId).emit("answer", {
+      answer,
+      senderId: socket.id
+    });
   });
 
-  // Forward WebRTC ANSWER
-  socket.on("signal-answer", ({ roomId, to, answer }) => {
-    console.log(`📨 Answer from ${socket.id} to ${to} in room "${roomId}"`);
-    io.to(to).emit("signal-answer", { from: socket.id, answer });
+  // --------------------------
+  // ICE CANDIDATES
+  // --------------------------
+  socket.on("ice-candidate", ({ candidate, targetId }) => {
+    io.to(targetId).emit("ice-candidate", {
+      candidate,
+      senderId: socket.id
+    });
   });
 
-  // Forward ICE candidate
-  socket.on("signal-ice-candidate", ({ roomId, to, candidate }) => {
-    // console.log(`📨 ICE candidate from ${socket.id} to ${to}`);
-    io.to(to).emit("signal-ice-candidate", { from: socket.id, candidate });
-  });
-
-  // Public chat in a room
-  socket.on("send-chat-message", ({ roomId, message }) => {
-    const username = socket.data.username || "Unknown";
+  // --------------------------
+  // CHAT MESSAGE
+  // --------------------------
+  socket.on("chat-message", ({ roomId, message, name }) => {
     io.to(roomId).emit("chat-message", {
-      username,
       message,
-      time: new Date().toISOString(),
+      name,
+      time: Date.now()
     });
   });
 
-  // Handle disconnect
+  // --------------------------
+  // USER DISCONNECTS
+  // --------------------------
   socket.on("disconnect", () => {
-    const roomId = socket.data.roomId;
-    const username = socket.data.username;
+    console.log("Disconnected:", socket.id);
 
-    console.log("❌ User disconnected:", socket.id, "from room:", roomId);
+    // Find which room user was in
+    for (const roomId in rooms) {
+      if (rooms[roomId][socket.id]) {
+        const name = rooms[roomId][socket.id];
 
-    if (roomId && rooms[roomId]) {
-      // Remove from room list
-      delete rooms[roomId][socket.id];
+        delete rooms[roomId][socket.id];
 
-      // If room is empty now, delete it
-      if (Object.keys(rooms[roomId]).length === 0) {
-        delete rooms[roomId];
+        // Notify others
+        socket.to(roomId).emit("user-left", socket.id);
+
+        // Update participants list
+        io.to(roomId).emit("room-users", rooms[roomId]);
+
+        // Remove room if empty
+        if (Object.keys(rooms[roomId]).length === 0) {
+          delete rooms[roomId];
+        }
+
+        break;
       }
-
-      // Notify remaining users
-      socket.to(roomId).emit("user-left", {
-        socketId: socket.id,
-        username,
-      });
     }
   });
 });
 
-// ============================================================================
-// START SERVER
-// ============================================================================
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, "0.0.0.0", () => {
+// ==========================
+//        START SERVER
+// ==========================
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
 });
-
