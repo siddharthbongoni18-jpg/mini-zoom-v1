@@ -9,10 +9,10 @@
 <body data-page="room">
   <div class="app-container meeting-layout">
 
-    <!-- LEFT: Video Area -->
+    <!-- LEFT: Video area -->
     <div class="video-section">
 
-      <!-- Top Bar -->
+      <!-- Top bar: room info -->
       <div class="top-bar">
         <div>
           <span class="badge">Room</span>
@@ -23,27 +23,37 @@
         </div>
       </div>
 
-      <!-- VIDEO GRID -->
-      <div id="remoteVideos" class="remote-videos-grid">
-        <!-- Local + Remote videos appear here -->
+      <!-- Video layout: big screen + side grid -->
+      <div class="video-layout">
+        <!-- Big main video (for screen share) -->
+        <div id="mainVideo" class="main-video-slot"></div>
+
+        <!-- Normal camera grid -->
+        <div id="remoteVideos" class="remote-videos-grid">
+          <!-- Local + Remote videos will appear here -->
+        </div>
       </div>
 
-      <!-- CONTROLS -->
+      <!-- Controls -->
       <div class="controls-bar">
         <button id="btnToggleMic" class="btn control-btn">🎙️ Mute</button>
         <button id="btnToggleCamera" class="btn control-btn">📷 Camera Off</button>
         <button id="btnShareScreen" class="btn control-btn">🖥️ Share Screen</button>
 
-        <!-- ⭐ HAND RAISE BUTTON -->
-        <button id="btnRaiseHand" class="btn control-btn" style="background:#ffb703; color:#000;">
+        <button id="btnRaiseHand" class="btn control-btn">
           ✋ Raise Hand
         </button>
 
-        <!-- ⭐ LEAVE BUTTON -->
-        <button id="btnLeave" class="btn control-btn" style="background:#ff4b5c;">
+        <!-- Host-only controls -->
+        <button id="btnMuteAll" class="btn control-btn host-only">
+          🔇 Mute All
+        </button>
+
+        <button id="btnLeave" class="btn control-btn leave-btn">
           🚪 Leave
         </button>
       </div>
+
     </div>
 
     <!-- RIGHT: Sidebar -->
@@ -59,7 +69,6 @@
       <div class="sidebar-section chat-section">
         <h2 class="sidebar-title">Chat</h2>
         <div id="chatMessages" class="chat-messages"></div>
-
         <form id="chatForm" class="chat-form">
           <input
             id="chatInput"
@@ -70,10 +79,11 @@
           />
         </form>
       </div>
-    </div>
 
+    </div>
   </div>
 
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>

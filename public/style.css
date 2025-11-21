@@ -242,3 +242,77 @@ body {
     height: auto;
   }
 }
+
+/* ===== Screen share layout ===== */
+
+.video-layout {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  height: 100%;
+}
+
+/* default: no screen share -> hide main slot */
+.main-video-slot {
+  flex: 0;
+  display: none;
+}
+
+/* when a screen is active */
+.video-layout.has-screen .main-video-slot {
+  flex: 2;
+  display: block;
+  background: #000;
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+}
+
+.video-layout.has-screen #remoteVideos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+/* hand raise badge on tiles */
+.remote-video-wrapper.hand-raised {
+  box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.7);
+}
+
+.hand-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 999px;
+  padding: 4px 6px;
+  font-size: 0.9rem;
+}
+
+/* host-only button hidden by default */
+.host-only {
+  display: none;
+}
+
+/* when this client is host */
+body.is-host .host-only {
+  display: inline-flex;
+}
+
+/* small kick button in participants list */
+.kick-btn {
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  border: none;
+  background: #ff4b5c;
+  color: #fff;
+  cursor: pointer;
+}
+
+.kick-btn:hover {
+  filter: brightness(1.1);
+}
