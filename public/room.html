@@ -7,80 +7,100 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body data-page="room">
-  <div class="app-container meeting-layout">
+  <div class="meeting-root">
 
-    <!-- LEFT: Video area -->
-    <div class="video-section">
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <span class="badge">Room</span>
+        <span id="roomLabel" class="room-label"></span>
+      </div>
+      <div class="top-bar-right">
+        <span id="usernameLabel" class="username-label"></span>
+      </div>
+    </header>
 
-      <!-- Top bar: room info -->
-      <div class="top-bar">
-        <div>
-          <span class="badge">Room</span>
-          <span id="roomLabel" class="room-label"></span>
-        </div>
-        <div class="top-bar-right">
-          <span id="usernameLabel" class="username-label"></span>
-        </div>
+    <!-- MAIN VIDEO AREA -->
+    <main class="video-area">
+      <div id="remoteVideos" class="video-grid">
+        <!-- Local + remote videos are injected here by script.js -->
       </div>
 
-      <!-- Video layout: big screen + side grid -->
-      <div class="video-layout">
-        <!-- Big main video (for screen share) -->
-        <div id="mainVideo" class="main-video-slot"></div>
-
-        <!-- Normal camera grid -->
-        <div id="remoteVideos" class="remote-videos-grid">
-          <!-- Local + Remote videos will appear here -->
-        </div>
-      </div>
-
-      <!-- Controls -->
+      <!-- BOTTOM CONTROLS (Zoom-style) -->
       <div class="controls-bar">
-        <button id="btnToggleMic" class="btn control-btn">🎙️ Mute</button>
-        <button id="btnToggleCamera" class="btn control-btn">📷 Camera Off</button>
-        <button id="btnShareScreen" class="btn control-btn">🖥️ Share Screen</button>
-
-        <button id="btnRaiseHand" class="btn control-btn">
-          ✋ Raise Hand
+        <button id="btnToggleMic" class="control-btn">
+          <span class="control-icon">🎙️</span>
+          <span class="control-label">Mute</span>
         </button>
 
-        <!-- Host-only controls -->
-        <button id="btnMuteAll" class="btn control-btn host-only">
-          🔇 Mute All
+        <button id="btnToggleCamera" class="control-btn">
+          <span class="control-icon">📷</span>
+          <span class="control-label">Stop Video</span>
         </button>
 
-        <button id="btnLeave" class="btn control-btn leave-btn">
-          🚪 Leave
+        <button id="btnParticipants" class="control-btn">
+          <span class="control-icon">👥</span>
+          <span class="control-label">Participants</span>
+        </button>
+
+        <button id="btnChat" class="control-btn">
+          <span class="control-icon">💬</span>
+          <span class="control-label">Chat</span>
+        </button>
+
+        <button id="btnShareScreen" class="control-btn">
+          <span class="control-icon">🖥️</span>
+          <span class="control-label">Share Screen</span>
+        </button>
+
+        <button id="btnRaiseHand" class="control-btn">
+          <span class="control-icon">✋</span>
+          <span class="control-label">Raise Hand</span>
+        </button>
+
+        <button id="btnLeave" class="control-btn leave-btn">
+          <span class="control-label">Leave</span>
         </button>
       </div>
+    </main>
 
-    </div>
-
-    <!-- RIGHT: Sidebar -->
-    <div class="sidebar">
-
-      <!-- Participants -->
-      <div class="sidebar-section">
-        <h2 class="sidebar-title">Participants</h2>
-        <ul id="participantsList" class="participants-list"></ul>
+    <!-- SLIDE-IN SIDEBAR (Participants / Chat) -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-tabs">
+          <button id="tabParticipants" class="sidebar-tab active">
+            Participants
+          </button>
+          <button id="tabChat" class="sidebar-tab">
+            Chat
+          </button>
+        </div>
+        <button id="btnCloseSidebar" class="sidebar-close">✕</button>
       </div>
 
-      <!-- Chat -->
-      <div class="sidebar-section chat-section">
-        <h2 class="sidebar-title">Chat</h2>
-        <div id="chatMessages" class="chat-messages"></div>
-        <form id="chatForm" class="chat-form">
-          <input
-            id="chatInput"
-            type="text"
-            class="input chat-input"
-            placeholder="Type a message and hit Enter..."
-            autocomplete="off"
-          />
-        </form>
-      </div>
+      <div class="sidebar-body">
+        <!-- Participants panel -->
+        <div id="panelParticipants" class="sidebar-panel active">
+          <h2 class="sidebar-title">Participants</h2>
+          <ul id="participantsList" class="participants-list"></ul>
+        </div>
 
-    </div>
+        <!-- Chat panel -->
+        <div id="panelChat" class="sidebar-panel">
+          <h2 class="sidebar-title">Chat</h2>
+          <div id="chatMessages" class="chat-messages"></div>
+          <form id="chatForm" class="chat-form">
+            <input
+              id="chatInput"
+              type="text"
+              class="input chat-input"
+              placeholder="Type a message and press Enter..."
+              autocomplete="off"
+            />
+          </form>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <!-- Scripts -->
