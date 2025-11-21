@@ -1,15 +1,16 @@
 // ===============================
-//   MINI ZOOM - CLIENT LOGIC (FINAL WITH HAND RAISE)
+//   MINI ZOOM - CLIENT LOGIC (FINAL + HAND RAISE + FIXED USERNAME)
 // ===============================
 
 let socket = null;
 let localStream = null;
-let peers = {};               // socketId -> RTCPeerConnection
-let remoteVideoElements = {}; // socketId -> video tile wrapper
+let peers = {};               
+let remoteVideoElements = {}; 
 let roomId = null;
 let username = null;
+let isHandRaised = false;
 
-// ICE servers
+// STUN / TURN servers
 const iceServers = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302"] },
@@ -19,7 +20,7 @@ const iceServers = {
 };
 
 // ===============================
-//   PAGE DETECTION
+//   PAGE LOAD
 // ===============================
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body.dataset.page;
@@ -46,6 +47,7 @@ function initHomePage() {
       return;
     }
 
+    // permissions check
     try {
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     } catch (err) {
@@ -122,7 +124,6 @@ async function initLocalMedia() {
 function registerSocketEvents() {
 
   socket.on("existing-users", (userIds) => {
-    if (!Array.isArray(userIds)) return;
     userIds.forEach(id => createPeerConnection(id, true));
   });
 
@@ -135,7 +136,6 @@ function registerSocketEvents() {
 
     await peers[senderId].setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await peers[senderId].createAnswer();
-
     await peers[senderId].setLocalDescription(answer);
 
     socket.emit("answer", { answer, targetId: senderId });
@@ -161,18 +161,39 @@ function registerSocketEvents() {
     updateParticipants(users);
   });
 
-  socket.on("chat-message", ({ message, name }) => {
-    addChatMessage(name, message);
+  // ===============================
+  //     ⭐ HAND RAISE BROADCAST ⭐
+  // ===============================
+  socket.on("hand-raise", ({ userId, name, raised }) => {
+
+    // Update participant list
+    const list = document.getElementById("participantsList");
+    const items = list.getElementsByTagName("li");
+
+    for (let li of items) {
+      if (li.dataset.id === userId) {
+        li.innerHTML = raised ? `${name} ✋` : name;
+      }
+    }
+
+    // Update video tile
+    const tile = remoteVideoElements[userId];
+    if (tile) {
+      const label = tile.querySelector(".video-label");
+      if (label) {
+        label.textContent = raised ? `${name} ✋` : name;
+      }
+    }
   });
 
-  // ⭐ HAND RAISE EVENT
-  socket.on("hand-raise", ({ username, raised }) => {
-    addChatMessage("System", `${username} has ${raised ? "raised" : "lowered"} their hand ✋`);
+  // Chat messages
+  socket.on("chat-message", ({ message, name }) => {
+    addChatMessage(name, message);
   });
 }
 
 // ===============================
-//   PEER CONNECTION
+//   CREATE PEER CONNECTION
 // ===============================
 function createPeerConnection(remoteId, isInitiator) {
   if (peers[remoteId] instanceof RTCPeerConnection) return;
@@ -180,6 +201,7 @@ function createPeerConnection(remoteId, isInitiator) {
   const pc = new RTCPeerConnection(iceServers);
   peers[remoteId] = pc;
 
+  // Add local tracks
   if (localStream) {
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
   }
@@ -194,8 +216,8 @@ function createPeerConnection(remoteId, isInitiator) {
   };
 
   pc.ontrack = (event) => {
-    if (!remoteVideoElements[remoteId]) {
 
+    if (!remoteVideoElements[remoteId]) {
       const wrapper = document.createElement("div");
       wrapper.className = "remote-video-wrapper";
 
@@ -250,7 +272,7 @@ function removePeer(socketId) {
 }
 
 // ===============================
-//   PARTICIPANTS
+//   PARTICIPANTS LIST UPDATE
 // ===============================
 function updateParticipants(users) {
   const list = document.getElementById("participantsList");
@@ -261,8 +283,15 @@ function updateParticipants(users) {
     peers[id].username = name;
 
     const li = document.createElement("li");
+    li.dataset.id = id;
     li.textContent = name + (socket.id === id ? " (You)" : "");
     list.appendChild(li);
+
+    // update video tile label also
+    if (remoteVideoElements[id]) {
+      remoteVideoElements[id]
+        .querySelector(".video-label").textContent = name;
+    }
   });
 }
 
@@ -279,12 +308,7 @@ if (chatForm) {
     const msg = chatInput.value.trim();
     if (!msg) return;
 
-    socket.emit("chat-message", {
-      roomId,
-      message: msg,
-      name: username
-    });
-
+    socket.emit("chat-message", { roomId, message: msg, name: username });
     addChatMessage("You", msg);
     chatInput.value = "";
   });
@@ -306,9 +330,9 @@ function setupControls() {
   const btnCam = document.getElementById("btnToggleCamera");
   const btnScreen = document.getElementById("btnShareScreen");
   const btnLeave = document.getElementById("btnLeave");
-  const btnRaiseHand = document.getElementById("btnRaiseHand");
+  const btnRaise = document.getElementById("btnRaiseHand");
 
-  // MICROPHONE
+  // MIC
   btnMic.addEventListener("click", () => {
     const track = localStream.getAudioTracks()[0];
     track.enabled = !track.enabled;
@@ -341,25 +365,26 @@ function setupControls() {
         }
       };
 
-    } catch (err) {
-      console.error("Screen share error:", err);
-    }
+    } catch (err) {}
   });
 
-  // ⭐ HAND RAISE BUTTON
-  btnRaiseHand.addEventListener("click", () => {
-    const raised = btnRaiseHand.classList.toggle("raised");
+  // ⭐ HAND RAISE ⭐
+  btnRaise.addEventListener("click", () => {
+    isHandRaised = !isHandRaised;
 
-    btnRaiseHand.textContent = raised ? "🙌 Hand Raised" : "✋ Raise Hand";
+    btnRaise.textContent = isHandRaised
+      ? "🙌 Hand Raised"
+      : "✋ Raise Hand";
 
     socket.emit("hand-raise", {
       roomId,
-      username,
-      raised
+      userId: socket.id,
+      name: username,
+      raised: isHandRaised
     });
   });
 
-  // ⭐ LEAVE BUTTON
+  // LEAVE
   btnLeave.addEventListener("click", () => {
     socket.emit("leave-room");
 
@@ -374,3 +399,4 @@ function setupControls() {
     window.location.href = "index.html";
   });
 }
+
