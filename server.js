@@ -18,7 +18,7 @@ const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
-  }
+  },
 });
 
 // Serve static files (public folder)
@@ -31,20 +31,43 @@ app.get("/", (req, res) => {
 // ==========================
 //   IN-MEMORY USER STORAGE
 // ==========================
-let rooms = {}; 
+let rooms = {};
 /*
 rooms = {
-    "1234": {
-        "SocketID1": "Alice",
-        "SocketID2": "Siddu"
-    }
+  "1234": {
+    "SocketID1": "Alice",
+    "SocketID2": "Siddu"
+  }
 }
 */
+
+// Helper to remove user from rooms
+function removeUserFromRooms(socket) {
+  for (const roomId in rooms) {
+    if (rooms[roomId][socket.id]) {
+      const name = rooms[roomId][socket.id];
+      console.log(`User ${socket.id} (${name}) left room ${roomId}`);
+
+      delete rooms[roomId][socket.id];
+
+      // Notify others
+      socket.to(roomId).emit("user-left", socket.id);
+
+      // Update participants list
+      io.to(roomId).emit("room-users", rooms[roomId]);
+
+      // Remove room if empty
+      if (Object.keys(rooms[roomId]).length === 0) {
+        delete rooms[roomId];
+      }
+      break;
+    }
+  }
+}
 
 // ==========================
 //     SOCKET.IO HANDLERS
 // ==========================
-
 io.on("connection", (socket) => {
   console.log("Connected:", socket.id);
 
@@ -52,57 +75,53 @@ io.on("connection", (socket) => {
   // USER JOINS A ROOM
   // --------------------------
   socket.on("join-room", ({ roomId, name }) => {
+    if (!roomId) return;
+
     socket.join(roomId);
 
-    // Create room if not exist
     if (!rooms[roomId]) rooms[roomId] = {};
-
-    // Save user
     rooms[roomId][socket.id] = name || "Guest";
 
     console.log(`User ${socket.id} (${rooms[roomId][socket.id]}) joined room ${roomId}`);
 
-    // Send existing users to new user
-    const existingUsers = Object.keys(rooms[roomId]).filter(id => id !== socket.id);
-    socket.emit("existing-users", existingUsers);
-
-    // Notify others in the room
-    socket.to(roomId).emit("user-joined", {
-      socketId: socket.id,
-      name: rooms[roomId][socket.id]
+    // Send all users in this room to the newly joined client
+    // (including themselves so they know their own socket id)
+    socket.emit("existing-users", {
+      users: rooms[roomId], // { socketId: name }
+      selfId: socket.id,
     });
 
-    // Update participants list
+    // Notify others in the room that a new user joined
+    socket.to(roomId).emit("user-joined", {
+      socketId: socket.id,
+      name: rooms[roomId][socket.id],
+    });
+
+    // Update participants list for everyone
     io.to(roomId).emit("room-users", rooms[roomId]);
   });
 
   // --------------------------
-  // OFFER SENT TO A USER
+  // OFFER / ANSWER / ICE
   // --------------------------
   socket.on("offer", ({ offer, targetId }) => {
     io.to(targetId).emit("offer", {
       offer,
-      senderId: socket.id
+      senderId: socket.id,
     });
   });
 
-  // --------------------------
-  // ANSWER SENT BACK
-  // --------------------------
   socket.on("answer", ({ answer, targetId }) => {
     io.to(targetId).emit("answer", {
       answer,
-      senderId: socket.id
+      senderId: socket.id,
     });
   });
 
-  // --------------------------
-  // ICE CANDIDATES
-  // --------------------------
   socket.on("ice-candidate", ({ candidate, targetId }) => {
     io.to(targetId).emit("ice-candidate", {
       candidate,
-      senderId: socket.id
+      senderId: socket.id,
     });
   });
 
@@ -110,11 +129,27 @@ io.on("connection", (socket) => {
   // CHAT MESSAGE
   // --------------------------
   socket.on("chat-message", ({ roomId, message, name }) => {
+    if (!roomId) return;
     io.to(roomId).emit("chat-message", {
       message,
       name,
-      time: Date.now()
+      time: Date.now(),
     });
+  });
+
+  // --------------------------
+  // HAND RAISE
+  // --------------------------
+  socket.on("hand-raise", ({ roomId, username, raised }) => {
+    if (!roomId) return;
+    io.to(roomId).emit("hand-raise", { username, raised });
+  });
+
+  // --------------------------
+  // OPTIONAL LEAVE-ROOM
+  // --------------------------
+  socket.on("leave-room", () => {
+    removeUserFromRooms(socket);
   });
 
   // --------------------------
@@ -122,28 +157,7 @@ io.on("connection", (socket) => {
   // --------------------------
   socket.on("disconnect", () => {
     console.log("Disconnected:", socket.id);
-
-    // Find which room user was in
-    for (const roomId in rooms) {
-      if (rooms[roomId][socket.id]) {
-        const name = rooms[roomId][socket.id];
-
-        delete rooms[roomId][socket.id];
-
-        // Notify others
-        socket.to(roomId).emit("user-left", socket.id);
-
-        // Update participants list
-        io.to(roomId).emit("room-users", rooms[roomId]);
-
-        // Remove room if empty
-        if (Object.keys(rooms[roomId]).length === 0) {
-          delete rooms[roomId];
-        }
-
-        break;
-      }
-    }
+    removeUserFromRooms(socket);
   });
 });
 
