@@ -9,10 +9,10 @@
 <body data-page="room">
   <div class="app-container meeting-layout">
 
-    <!-- LEFT: Video area -->
+    <!-- LEFT: Video Area -->
     <div class="video-section">
 
-      <!-- Top bar: room info -->
+      <!-- Top Bar -->
       <div class="top-bar">
         <div>
           <span class="badge">Room</span>
@@ -23,23 +23,27 @@
         </div>
       </div>
 
-      <!-- Video grid -->
+      <!-- VIDEO GRID -->
       <div id="remoteVideos" class="remote-videos-grid">
-        <!-- Local + Remote videos will appear here -->
+        <!-- Local + Remote videos appear here -->
       </div>
 
-      <!-- Controls -->
+      <!-- CONTROLS -->
       <div class="controls-bar">
         <button id="btnToggleMic" class="btn control-btn">🎙️ Mute</button>
         <button id="btnToggleCamera" class="btn control-btn">📷 Camera Off</button>
         <button id="btnShareScreen" class="btn control-btn">🖥️ Share Screen</button>
 
-        <!-- ⭐ NEW LEAVE BUTTON -->
+        <!-- ⭐ HAND RAISE BUTTON -->
+        <button id="btnRaiseHand" class="btn control-btn" style="background:#ffb703; color:#000;">
+          ✋ Raise Hand
+        </button>
+
+        <!-- ⭐ LEAVE BUTTON -->
         <button id="btnLeave" class="btn control-btn" style="background:#ff4b5c;">
           🚪 Leave
         </button>
       </div>
-
     </div>
 
     <!-- RIGHT: Sidebar -->
@@ -55,6 +59,7 @@
       <div class="sidebar-section chat-section">
         <h2 class="sidebar-title">Chat</h2>
         <div id="chatMessages" class="chat-messages"></div>
+
         <form id="chatForm" class="chat-form">
           <input
             id="chatInput"
@@ -65,11 +70,10 @@
           />
         </form>
       </div>
-
     </div>
+
   </div>
 
-  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>

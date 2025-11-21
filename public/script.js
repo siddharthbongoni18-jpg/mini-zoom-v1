@@ -1,5 +1,5 @@
 // ===============================
-//   MINI ZOOM - CLIENT LOGIC (final version)
+//   MINI ZOOM - CLIENT LOGIC (FINAL WITH HAND RAISE)
 // ===============================
 
 let socket = null;
@@ -12,7 +12,7 @@ let username = null;
 // ICE servers
 const iceServers = {
   iceServers: [
-    { urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"] },
+    { urls: ["stun:stun.l.google.com:19302"] },
     { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
     { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
   ]
@@ -105,14 +105,13 @@ async function initLocalMedia() {
     wrapper.appendChild(video);
     wrapper.appendChild(label);
 
+    const grid = document.getElementById("remoteVideos");
     const existing = document.querySelector(".local-tile");
     if (existing) existing.remove();
 
-    const grid = document.getElementById("remoteVideos");
     grid.insertBefore(wrapper, grid.firstChild);
 
   } catch (err) {
-    console.error("Media error:", err);
     alert("Unable to access camera/microphone.");
   }
 }
@@ -124,7 +123,7 @@ function registerSocketEvents() {
 
   socket.on("existing-users", (userIds) => {
     if (!Array.isArray(userIds)) return;
-    userIds.forEach((id) => createPeerConnection(id, true));
+    userIds.forEach(id => createPeerConnection(id, true));
   });
 
   socket.on("user-joined", ({ socketId }) => {
@@ -136,22 +135,21 @@ function registerSocketEvents() {
 
     await peers[senderId].setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await peers[senderId].createAnswer();
+
     await peers[senderId].setLocalDescription(answer);
 
     socket.emit("answer", { answer, targetId: senderId });
   });
 
   socket.on("answer", async ({ answer, senderId }) => {
-    const pc = peers[senderId];
-    if (!pc) return;
-    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    if (peers[senderId]) {
+      await peers[senderId].setRemoteDescription(new RTCSessionDescription(answer));
+    }
   });
 
   socket.on("ice-candidate", async ({ candidate, senderId }) => {
     if (peers[senderId]) {
-      try {
-        await peers[senderId].addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (e) {}
+      await peers[senderId].addIceCandidate(new RTCIceCandidate(candidate));
     }
   });
 
@@ -165,6 +163,11 @@ function registerSocketEvents() {
 
   socket.on("chat-message", ({ message, name }) => {
     addChatMessage(name, message);
+  });
+
+  // ⭐ HAND RAISE EVENT
+  socket.on("hand-raise", ({ username, raised }) => {
+    addChatMessage("System", `${username} has ${raised ? "raised" : "lowered"} their hand ✋`);
   });
 }
 
@@ -228,10 +231,7 @@ function createPeerConnection(remoteId, isInitiator) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      socket.emit("offer", {
-        offer,
-        targetId: remoteId
-      });
+      socket.emit("offer", { offer, targetId: remoteId });
     }, 200);
   }
 }
@@ -240,15 +240,13 @@ function createPeerConnection(remoteId, isInitiator) {
 //   REMOVE PEER
 // ===============================
 function removePeer(socketId) {
-  if (peers[socketId]) {
-    peers[socketId].close();
-    delete peers[socketId];
-  }
+  if (peers[socketId]) peers[socketId].close();
+  delete peers[socketId];
 
   if (remoteVideoElements[socketId]) {
     remoteVideoElements[socketId].remove();
-    delete remoteVideoElements[socketId];
   }
+  delete remoteVideoElements[socketId];
 }
 
 // ===============================
@@ -281,7 +279,12 @@ if (chatForm) {
     const msg = chatInput.value.trim();
     if (!msg) return;
 
-    socket.emit("chat-message", { roomId, message: msg, name: username });
+    socket.emit("chat-message", {
+      roomId,
+      message: msg,
+      name: username
+    });
+
     addChatMessage("You", msg);
     chatInput.value = "";
   });
@@ -303,62 +306,71 @@ function setupControls() {
   const btnCam = document.getElementById("btnToggleCamera");
   const btnScreen = document.getElementById("btnShareScreen");
   const btnLeave = document.getElementById("btnLeave");
+  const btnRaiseHand = document.getElementById("btnRaiseHand");
 
-  if (btnMic) {
-    btnMic.addEventListener("click", () => {
-      const track = localStream.getAudioTracks()[0];
-      track.enabled = !track.enabled;
-      btnMic.textContent = track.enabled ? "🎙️ Mute" : "🔇 Unmute";
-    });
-  }
+  // MICROPHONE
+  btnMic.addEventListener("click", () => {
+    const track = localStream.getAudioTracks()[0];
+    track.enabled = !track.enabled;
+    btnMic.textContent = track.enabled ? "🎙️ Mute" : "🔇 Unmute";
+  });
 
-  if (btnCam) {
-    btnCam.addEventListener("click", () => {
-      const track = localStream.getVideoTracks()[0];
-      track.enabled = !track.enabled;
-      btnCam.textContent = track.enabled ? "📷 Camera Off" : "📷 Camera On";
-    });
-  }
+  // CAMERA
+  btnCam.addEventListener("click", () => {
+    const track = localStream.getVideoTracks()[0];
+    track.enabled = !track.enabled;
+    btnCam.textContent = track.enabled ? "📷 Camera Off" : "📷 Camera On";
+  });
 
-  if (btnScreen) {
-    btnScreen.addEventListener("click", async () => {
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        const screenTrack = screenStream.getVideoTracks()[0];
-
-        for (const id in peers) {
-          const sender = peers[id].getSenders().find(s => s.track && s.track.kind === "video");
-          if (sender) sender.replaceTrack(screenTrack);
-        }
-
-        screenTrack.onended = () => {
-          const camTrack = localStream.getVideoTracks()[0];
-          for (const id in peers) {
-            const sender = peers[id].getSenders().find(s => s.track && s.track.kind === "video");
-            if (sender) sender.replaceTrack(camTrack);
-          }
-        };
-
-      } catch (err) {
-        console.error("Screen share error:", err);
-      }
-    });
-  }
-
-  // ⭐ LEAVE BUTTON
-  if (btnLeave) {
-    btnLeave.addEventListener("click", () => {
-      socket.emit("leave-room");
+  // SCREEN SHARE
+  btnScreen.addEventListener("click", async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
 
       for (const id in peers) {
-        try { peers[id].close(); } catch (e) {}
+        const sender = peers[id].getSenders().find(s => s.track && s.track.kind === "video");
+        if (sender) sender.replaceTrack(screenTrack);
       }
 
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-      }
+      screenTrack.onended = () => {
+        const camTrack = localStream.getVideoTracks()[0];
+        for (const id in peers) {
+          const sender = peers[id].getSenders().find(s => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(camTrack);
+        }
+      };
 
-      window.location.href = "index.html";
+    } catch (err) {
+      console.error("Screen share error:", err);
+    }
+  });
+
+  // ⭐ HAND RAISE BUTTON
+  btnRaiseHand.addEventListener("click", () => {
+    const raised = btnRaiseHand.classList.toggle("raised");
+
+    btnRaiseHand.textContent = raised ? "🙌 Hand Raised" : "✋ Raise Hand";
+
+    socket.emit("hand-raise", {
+      roomId,
+      username,
+      raised
     });
-  }
+  });
+
+  // ⭐ LEAVE BUTTON
+  btnLeave.addEventListener("click", () => {
+    socket.emit("leave-room");
+
+    for (const id in peers) {
+      try { peers[id].close(); } catch {}
+    }
+
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+    }
+
+    window.location.href = "index.html";
+  });
 }
