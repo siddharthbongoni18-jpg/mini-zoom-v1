@@ -1,5 +1,5 @@
 // ===============================
-//   MINI ZOOM - CLIENT SCRIPT (ZOOM UI + HOST + HAND RAISE + SCREEN LAYOUT)
+//   MINI ZOOM - CLIENT SCRIPT (ZOOM UI + HOST + HAND RAISE + SCREEN LAYOUT + UNREAD CHAT)
 // ===============================
 
 let socket = null;
@@ -20,9 +20,15 @@ let btnMic, btnCam, btnScreen, btnLeave, btnRaise;
 let btnParticipants, btnChat, btnCloseSidebar;
 let sidebarEl, sidebarTabParticipants, sidebarTabChat;
 let panelParticipantsEl, panelChatEl;
+let chatUnreadBadgeEl;
 
 let hostId = null;
 let currentScreenSharerId = null; // who is sharing screen right now
+
+// sidebar / chat state
+let isSidebarOpen = false;
+let activeSidebarTab = "participants";
+let unreadChatCount = 0;
 
 // ICE servers
 const iceServers = {
@@ -118,6 +124,8 @@ async function initRoomPage() {
   sidebarTabChat = document.getElementById("tabChat");
   panelParticipantsEl = document.getElementById("panelParticipants");
   panelChatEl = document.getElementById("panelChat");
+
+  chatUnreadBadgeEl = document.getElementById("chatUnreadBadge");
 
   // Socket
   socket = io();
@@ -253,6 +261,16 @@ function registerSocketEvents() {
   // chat
   socket.on("chat-message", ({ message, name }) => {
     addChatMessage(name, message);
+
+    const isOwn = name === username || name === "You";
+    const isSystem = name === "System";
+
+    // only show unread if it's from others and chat isn't open
+    if (!isOwn && !isSystem) {
+      if (!(isSidebarOpen && activeSidebarTab === "chat")) {
+        incrementUnreadChat();
+      }
+    }
   });
 
   // hand raise
@@ -513,6 +531,8 @@ function setupChat() {
     socket.emit("chat-message", { roomId, message: msg, name: username });
     addChatMessage("You", msg);
     chatInputEl.value = "";
+    // you sent message yourself -> already seeing chat,
+    // so no unread increment here
   });
 }
 
@@ -530,6 +550,21 @@ function escapeHtml(s) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+// unread chat helpers
+function incrementUnreadChat() {
+  unreadChatCount++;
+  if (chatUnreadBadgeEl) {
+    chatUnreadBadgeEl.hidden = false;
+  }
+}
+
+function markChatAsRead() {
+  unreadChatCount = 0;
+  if (chatUnreadBadgeEl) {
+    chatUnreadBadgeEl.hidden = true;
+  }
 }
 
 // ===============================
@@ -693,12 +728,12 @@ function setupSidebar() {
 
   const openParticipants = () => openSidebar("participants");
   const openChat = () => openSidebar("chat");
-  const closeSidebar = () => sidebarEl.classList.remove("sidebar-visible");
+  const closeSidebarFn = () => closeSidebar();
 
   if (btnParticipants)
     btnParticipants.addEventListener("click", openParticipants);
   if (btnChat) btnChat.addEventListener("click", openChat);
-  if (btnCloseSidebar) btnCloseSidebar.addEventListener("click", closeSidebar);
+  if (btnCloseSidebar) btnCloseSidebar.addEventListener("click", closeSidebarFn);
 
   if (sidebarTabParticipants) {
     sidebarTabParticipants.addEventListener("click", () =>
@@ -715,11 +750,19 @@ function setupSidebar() {
 function openSidebar(tab) {
   if (!sidebarEl) return;
   sidebarEl.classList.add("sidebar-visible");
+  isSidebarOpen = true;
   switchSidebarTab(tab);
+}
+
+function closeSidebar() {
+  if (!sidebarEl) return;
+  sidebarEl.classList.remove("sidebar-visible");
+  isSidebarOpen = false;
 }
 
 function switchSidebarTab(tab) {
   const isParticipants = tab === "participants";
+  activeSidebarTab = tab;
 
   if (sidebarTabParticipants)
     sidebarTabParticipants.classList.toggle("active", isParticipants);
@@ -728,5 +771,11 @@ function switchSidebarTab(tab) {
 
   if (panelParticipantsEl)
     panelParticipantsEl.classList.toggle("active", isParticipants);
-  if (panelChatEl) panelChatEl.classList.toggle("active", !isParticipants);
+  if (panelChatEl)
+    panelChatEl.classList.toggle("active", !isParticipants);
+
+  // if user switched to Chat tab while sidebar is open -> mark as read
+  if (isSidebarOpen && tab === "chat") {
+    markChatAsRead();
+  }
 }
