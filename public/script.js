@@ -1,5 +1,5 @@
 // ===============================
-//   MINI ZOOM - CLIENT SCRIPT (ZOOM UI + HOST + HAND RAISE)
+//   MINI ZOOM - CLIENT SCRIPT (ZOOM UI + HOST + HAND RAISE + SCREEN LAYOUT)
 // ===============================
 
 let socket = null;
@@ -22,6 +22,7 @@ let sidebarEl, sidebarTabParticipants, sidebarTabChat;
 let panelParticipantsEl, panelChatEl;
 
 let hostId = null;
+let currentScreenSharerId = null; // who is sharing screen right now
 
 // ICE servers
 const iceServers = {
@@ -285,15 +286,15 @@ function registerSocketEvents() {
     cleanupAndLeave();
   });
 
-  // screen share layout events (optional)
+  // SCREEN SHARE LAYOUT EVENTS
   socket.on("screen-share-start", ({ socketId: sharerId }) => {
-    document.body.classList.add("screen-share-active");
-    document.body.dataset.screenSharer = sharerId;
+    currentScreenSharerId = sharerId;
+    applyScreenShareLayout();
   });
 
   socket.on("screen-share-stop", () => {
-    document.body.classList.remove("screen-share-active");
-    delete document.body.dataset.screenSharer;
+    currentScreenSharerId = null;
+    resetScreenShareLayout();
   });
 }
 
@@ -355,6 +356,11 @@ function createPeerConnection(remoteId, isInitiator) {
       const video = remoteVideoElements[remoteId].querySelector("video");
       if (video) video.srcObject = stream;
     }
+
+    // if someone is already sharing, update layout so new tile goes to side
+    if (currentScreenSharerId) {
+      applyScreenShareLayout();
+    }
   };
 
   pc.onconnectionstatechange = () => {
@@ -382,6 +388,62 @@ function createPeerConnection(remoteId, isInitiator) {
 }
 
 // ===============================
+//   SCREEN SHARE LAYOUT HELPERS
+// ===============================
+function applyScreenShareLayout() {
+  const grid = document.getElementById("remoteVideos");
+  if (!grid) return;
+
+  grid.classList.add("screen-share-layout");
+
+  const localTile = document.querySelector(".local-tile");
+
+  // clear old classes
+  if (localTile) {
+    localTile.classList.remove("screen-share-tile", "thumbnail-tile");
+  }
+  Object.values(remoteVideoElements).forEach((el) => {
+    el.classList.remove("screen-share-tile", "thumbnail-tile");
+  });
+
+  const sharerId = currentScreenSharerId;
+
+  // mark tiles
+  if (sharerId && remoteVideoElements[sharerId]) {
+    // remote person is sharing
+    remoteVideoElements[sharerId].classList.add("screen-share-tile");
+
+    // local + others go to thumbnail column
+    if (localTile) localTile.classList.add("thumbnail-tile");
+    Object.entries(remoteVideoElements).forEach(([id, el]) => {
+      if (id !== sharerId) el.classList.add("thumbnail-tile");
+    });
+  } else {
+    // we (this client) might be sharing (others see our screen),
+    // or we don't know sharer -> just put local as thumbnail
+    if (localTile) localTile.classList.add("thumbnail-tile");
+    Object.values(remoteVideoElements).forEach((el) =>
+      el.classList.add("thumbnail-tile")
+    );
+  }
+}
+
+function resetScreenShareLayout() {
+  const grid = document.getElementById("remoteVideos");
+  if (!grid) return;
+
+  grid.classList.remove("screen-share-layout");
+
+  const localTile = document.querySelector(".local-tile");
+  if (localTile) {
+    localTile.classList.remove("screen-share-tile", "thumbnail-tile");
+  }
+  Object.values(remoteVideoElements).forEach((el) =>
+    el.classList.remove("screen-share-tile", "thumbnail-tile")
+  );
+}
+
+// ===============================
 //   REMOVE PEER
 // ===============================
 function removePeer(socketId) {
@@ -397,6 +459,12 @@ function removePeer(socketId) {
       remoteVideoElements[socketId].remove();
     } catch (e) {}
     delete remoteVideoElements[socketId];
+  }
+
+  // if the person who left was screen sharer, reset layout
+  if (currentScreenSharerId === socketId) {
+    currentScreenSharerId = null;
+    resetScreenShareLayout();
   }
 }
 
@@ -544,7 +612,7 @@ function setupControls() {
     });
   }
 
-  // Host mute-all button (optional)
+  // Host mute-all button (optional, if you add it in HTML)
   const btnMuteAll = document.getElementById("btnMuteAll");
   if (btnMuteAll) {
     btnMuteAll.addEventListener("click", () => {
@@ -660,6 +728,5 @@ function switchSidebarTab(tab) {
 
   if (panelParticipantsEl)
     panelParticipantsEl.classList.toggle("active", isParticipants);
-  if (panelChatEl)
-    panelChatEl.classList.toggle("active", !isParticipants);
+  if (panelChatEl) panelChatEl.classList.toggle("active", !isParticipants);
 }

@@ -1,7 +1,5 @@
 /* ============================================================================
    MINI ZOOM — ZOOM-LIKE UI
-   - Home page
-   - Meeting page with full video + slide-in sidebar
    ========================================================================== */
 
 :root {
@@ -27,6 +25,11 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -35,6 +38,7 @@ body {
   color: var(--text-main);
   background-image: var(--bg-gradient);
   background-attachment: fixed;
+  overflow: hidden; /* stop page scroll so controls always at bottom */
 }
 
 /* ============================================================================
@@ -165,6 +169,7 @@ body {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  overflow: hidden;
 }
 
 /* Grid that contains local + remote tiles */
@@ -177,6 +182,14 @@ body {
   align-items: stretch;
 }
 
+/* Zoom-style layout while screen sharing:
+   big screen on left, small vertical strip on right */
+.video-grid.screen-share-layout {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1.1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  grid-auto-flow: row;
+}
+
 /* Video tile wrapper */
 .remote-video-wrapper {
   position: relative;
@@ -185,10 +198,23 @@ body {
   overflow: hidden;
   border: 1px solid var(--border-subtle);
   width: 100%;
-  padding-top: 56.25%; /* 16:9 */
+  aspect-ratio: 16 / 9;   /* keeps video 16:9 */
+  max-height: 100%;
 }
 
-/* Local tile has same style; class added in JS */
+/* main big tile for shared screen */
+.screen-share-tile {
+  grid-column: 1 / 2;
+  grid-row: 1 / -1;
+  aspect-ratio: auto;
+}
+
+/* side thumbnails */
+.thumbnail-tile {
+  grid-column: 2 / 3;
+}
+
+/* Local tile has highlight */
 .local-tile {
   outline: 2px solid var(--accent-soft);
 }
@@ -200,6 +226,12 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* for shared screen, show whole screen nicely */
+.screen-share-tile .remote-video {
+  object-fit: contain;
+  background: #000;
 }
 
 /* Video label ("You" / username) */
@@ -214,13 +246,14 @@ body {
 }
 
 /* ============================================================================
-   ZOOM-STYLE CONTROLS BAR
+   ZOOM-STYLE CONTROLS BAR (floating)
    ========================================================================== */
 
 .controls-bar {
-  margin-top: 8px;
-  margin-bottom: 4px;
-  align-self: center;
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -230,10 +263,11 @@ body {
   background: var(--control-bg);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  z-index: 40;
 }
 
 .control-btn {
-  min-width: 80px;
+  min-width: 76px;
   padding: 6px 10px;
   border-radius: 10px;
   border: none;
@@ -301,7 +335,7 @@ body {
   transition: transform 0.25s ease-out;
   display: flex;
   flex-direction: column;
-  z-index: 30;
+  z-index: 50;
 }
 
 .sidebar-visible {
@@ -426,6 +460,6 @@ body {
   }
 
   .control-btn {
-    min-width: 72px;
+    min-width: 70px;
   }
 }

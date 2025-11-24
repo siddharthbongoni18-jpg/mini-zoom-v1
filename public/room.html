@@ -12,7 +12,7 @@
     <!-- TOP BAR -->
     <header class="top-bar">
       <div class="top-bar-left">
-        <span class="badge">Room</span>
+        <span class="badge">ROOM</span>
         <span id="roomLabel" class="room-label"></span>
       </div>
       <div class="top-bar-right">
@@ -25,44 +25,44 @@
       <div id="remoteVideos" class="video-grid">
         <!-- Local + remote videos are injected here by script.js -->
       </div>
-
-      <!-- BOTTOM CONTROLS (Zoom-style) -->
-      <div class="controls-bar">
-        <button id="btnToggleMic" class="control-btn">
-          <span class="control-icon">🎙️</span>
-          <span class="control-label">Mute</span>
-        </button>
-
-        <button id="btnToggleCamera" class="control-btn">
-          <span class="control-icon">📷</span>
-          <span class="control-label">Stop Video</span>
-        </button>
-
-        <button id="btnParticipants" class="control-btn">
-          <span class="control-icon">👥</span>
-          <span class="control-label">Participants</span>
-        </button>
-
-        <button id="btnChat" class="control-btn">
-          <span class="control-icon">💬</span>
-          <span class="control-label">Chat</span>
-        </button>
-
-        <button id="btnShareScreen" class="control-btn">
-          <span class="control-icon">🖥️</span>
-          <span class="control-label">Share Screen</span>
-        </button>
-
-        <button id="btnRaiseHand" class="control-btn">
-          <span class="control-icon">✋</span>
-          <span class="control-label">Raise Hand</span>
-        </button>
-
-        <button id="btnLeave" class="control-btn leave-btn">
-          <span class="control-label">Leave</span>
-        </button>
-      </div>
     </main>
+
+    <!-- ZOOM-STYLE CONTROLS (always floating at bottom) -->
+    <div class="controls-bar">
+      <button id="btnToggleMic" class="control-btn">
+        <span class="control-icon">🎙️</span>
+        <span class="control-label">Mute</span>
+      </button>
+
+      <button id="btnToggleCamera" class="control-btn">
+        <span class="control-icon">📷</span>
+        <span class="control-label">Stop Video</span>
+      </button>
+
+      <button id="btnParticipants" class="control-btn">
+        <span class="control-icon">👥</span>
+        <span class="control-label">Participants</span>
+      </button>
+
+      <button id="btnChat" class="control-btn">
+        <span class="control-icon">💬</span>
+        <span class="control-label">Chat</span>
+      </button>
+
+      <button id="btnShareScreen" class="control-btn">
+        <span class="control-icon">🖥️</span>
+        <span class="control-label">Share Screen</span>
+      </button>
+
+      <button id="btnRaiseHand" class="control-btn">
+        <span class="control-icon">✋</span>
+        <span class="control-label">Raise Hand</span>
+      </button>
+
+      <button id="btnLeave" class="control-btn leave-btn">
+        <span class="control-label">Leave</span>
+      </button>
+    </div>
 
     <!-- SLIDE-IN SIDEBAR (Participants / Chat) -->
     <aside id="sidebar" class="sidebar">
