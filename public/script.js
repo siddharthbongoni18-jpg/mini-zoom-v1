@@ -17,9 +17,10 @@ let username = null;
 let chatFormEl, chatInputEl, chatMessagesEl;
 let participantsListEl;
 let btnMic, btnCam, btnScreen, btnLeave, btnRaise;
-let btnOpenParticipants, btnOpenChat, btnCloseSidebar;
+let btnParticipants, btnChat, btnCloseSidebar;
 let sidebarEl, sidebarTabParticipants, sidebarTabChat;
-let sidebarViewParticipants, sidebarViewChat;
+let panelParticipantsEl, panelChatEl;
+
 let hostId = null;
 
 // ICE servers
@@ -86,15 +87,16 @@ function initHomePage() {
 //   ROOM PAGE LOGIC
 // ===============================
 async function initRoomPage() {
-  // ----- basic info -----
   const params = new URLSearchParams(window.location.search);
   roomId = params.get("room");
   username = params.get("name") || "Guest";
 
-  document.getElementById("roomLabel").textContent = roomId || "";
-  document.getElementById("usernameLabel").textContent = username || "";
+  const roomLabel = document.getElementById("roomLabel");
+  const usernameLabel = document.getElementById("usernameLabel");
+  if (roomLabel) roomLabel.textContent = roomId || "";
+  if (usernameLabel) usernameLabel.textContent = username || "";
 
-  // ----- DOM refs -----
+  // DOM refs
   chatFormEl = document.getElementById("chatForm");
   chatInputEl = document.getElementById("chatInput");
   chatMessagesEl = document.getElementById("chatMessages");
@@ -106,28 +108,28 @@ async function initRoomPage() {
   btnLeave = document.getElementById("btnLeave");
   btnRaise = document.getElementById("btnRaiseHand");
 
-  btnOpenParticipants = document.getElementById("btnOpenParticipants");
-  btnOpenChat = document.getElementById("btnOpenChat");
+  btnParticipants = document.getElementById("btnParticipants");
+  btnChat = document.getElementById("btnChat");
   btnCloseSidebar = document.getElementById("btnCloseSidebar");
 
-  sidebarEl = document.getElementById("sidebarPanel");
+  sidebarEl = document.getElementById("sidebar");
   sidebarTabParticipants = document.getElementById("tabParticipants");
   sidebarTabChat = document.getElementById("tabChat");
-  sidebarViewParticipants = document.getElementById("sidebarParticipantsView");
-  sidebarViewChat = document.getElementById("sidebarChatView");
+  panelParticipantsEl = document.getElementById("panelParticipants");
+  panelChatEl = document.getElementById("panelChat");
 
-  // ----- connect socket -----
+  // Socket
   socket = io();
 
   registerSocketEvents();
 
-  // ----- get camera+mic -----
+  // Local media first
   await initLocalMedia();
 
-  // join room on server (after stream)
+  // Join room
   socket.emit("join-room", { roomId, name: username });
 
-  // controls + chat + sidebar
+  // UI wiring
   setupControls();
   setupChat();
   setupSidebar();
@@ -143,14 +145,13 @@ async function initLocalMedia() {
       audio: true,
     });
 
-    // Create local video tile that looks exactly like remote ones
     const wrapper = document.createElement("div");
     wrapper.className = "remote-video-wrapper local-tile";
 
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
-    video.muted = true; // avoid echo
+    video.muted = true; // avoids echo
     video.srcObject = localStream;
     video.className = "remote-video";
 
@@ -176,14 +177,13 @@ async function initLocalMedia() {
 // ===============================
 function registerSocketEvents() {
   // existing users -> only new client receives this
+  // users: { socketId: name, ... }
   socket.on("existing-users", (users) => {
-    // users is: { socketId: name, ... }
     if (!users) return;
-
     Object.entries(users).forEach(([id, name]) => {
       if (!peers[id]) peers[id] = {};
       peers[id].username = name;
-      createPeerConnection(id, true); // we are initiator towards existing users
+      createPeerConnection(id, true); // we initiate offers to existing users
     });
   });
 
@@ -191,7 +191,7 @@ function registerSocketEvents() {
   socket.on("user-joined", ({ socketId, name }) => {
     if (!peers[socketId]) peers[socketId] = {};
     peers[socketId].username = name;
-    createPeerConnection(socketId, false); // we wait to receive offer
+    createPeerConnection(socketId, false); // we wait for offer
   });
 
   // offer -> we must answer
@@ -255,19 +255,19 @@ function registerSocketEvents() {
   });
 
   // hand raise
-  socket.on("hand-raise", ({ socketId, username, raised }) => {
-    const labelText = `${username} has ${
+  socket.on("hand-raise", ({ socketId: sId, username: uname, raised }) => {
+    const labelText = `${uname} has ${
       raised ? "raised" : "lowered"
     } their hand ✋`;
     addChatMessage("System", labelText);
 
-    if (socketId === socket.id) {
-      const localTile = document.querySelector(".local-tile");
-      if (localTile) {
-        localTile.classList.toggle("hand-raised", raised);
-      }
-    } else if (remoteVideoElements[socketId]) {
-      remoteVideoElements[socketId].classList.toggle("hand-raised", raised);
+    const targetTile =
+      sId === socket.id
+        ? document.querySelector(".local-tile")
+        : remoteVideoElements[sId];
+
+    if (targetTile) {
+      targetTile.classList.toggle("hand-raised", raised);
     }
   });
 
@@ -276,7 +276,7 @@ function registerSocketEvents() {
     if (!localStream) return;
     const track = localStream.getAudioTracks()[0];
     if (track) track.enabled = false;
-    if (btnMic) btnMic.textContent = "🔇 Unmute";
+    updateMicButton(false);
   });
 
   // kicked by host
@@ -285,10 +285,10 @@ function registerSocketEvents() {
     cleanupAndLeave();
   });
 
-  // screen share layout events (optional, mainly for UI)
-  socket.on("screen-share-start", ({ socketId }) => {
+  // screen share layout events (optional)
+  socket.on("screen-share-start", ({ socketId: sharerId }) => {
     document.body.classList.add("screen-share-active");
-    document.body.dataset.screenSharer = socketId;
+    document.body.dataset.screenSharer = sharerId;
   });
 
   socket.on("screen-share-stop", () => {
@@ -301,7 +301,6 @@ function registerSocketEvents() {
 //   CREATE PEER CONNECTION
 // ===============================
 function createPeerConnection(remoteId, isInitiator) {
-  // peers[remoteId] object must exist
   if (!peers[remoteId]) peers[remoteId] = {};
 
   // avoid duplicates
@@ -310,7 +309,7 @@ function createPeerConnection(remoteId, isInitiator) {
   const pc = new RTCPeerConnection(iceServers);
   peers[remoteId].pc = pc;
 
-  // add local tracks to this connection
+  // add local tracks
   if (localStream) {
     localStream.getTracks().forEach((track) => {
       pc.addTrack(track, localStream);
@@ -374,7 +373,6 @@ function createPeerConnection(remoteId, isInitiator) {
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-
         socket.emit("offer", { offer, targetId: remoteId });
       } catch (err) {
         console.error("Error creating offer:", err);
@@ -408,7 +406,6 @@ function removePeer(socketId) {
 function updateParticipants(users) {
   if (!participantsListEl) return;
   participantsListEl.innerHTML = "";
-
   if (!users) return;
 
   Object.entries(users).forEach(([id, name]) => {
@@ -468,7 +465,7 @@ function escapeHtml(s) {
 }
 
 // ===============================
-//   CONTROLS (MIC, CAM, SCREEN, HAND, LEAVE)
+//   CONTROL BUTTONS (MIC, CAM, SCREEN, HAND, LEAVE)
 // ===============================
 function setupControls() {
   // MIC
@@ -478,7 +475,7 @@ function setupControls() {
       const track = localStream.getAudioTracks()[0];
       if (!track) return;
       track.enabled = !track.enabled;
-      btnMic.textContent = track.enabled ? "🎙️ Mute" : "🔇 Unmute";
+      updateMicButton(track.enabled);
     });
   }
 
@@ -489,7 +486,7 @@ function setupControls() {
       const track = localStream.getVideoTracks()[0];
       if (!track) return;
       track.enabled = !track.enabled;
-      btnCam.textContent = track.enabled ? "📷 Camera Off" : "📷 Camera On";
+      updateCameraButton(track.enabled);
     });
   }
 
@@ -502,10 +499,8 @@ function setupControls() {
         });
         const screenTrack = screenStream.getVideoTracks()[0];
 
-        // notify others for layout
         socket.emit("screen-share-start", { roomId });
 
-        // replace video track in each peer connection
         Object.values(peers).forEach((p) => {
           const sender = p.pc
             ?.getSenders()
@@ -513,7 +508,6 @@ function setupControls() {
           if (sender) sender.replaceTrack(screenTrack);
         });
 
-        // when share stops -> revert
         screenTrack.onended = () => {
           const camTrack = localStream.getVideoTracks()[0];
           Object.values(peers).forEach((p) => {
@@ -534,9 +528,8 @@ function setupControls() {
   if (btnRaise) {
     btnRaise.addEventListener("click", () => {
       const raised = btnRaise.classList.toggle("raised");
-      btnRaise.textContent = raised ? "🙌 Hand Raised" : "✋ Raise Hand";
+      updateRaiseHandButton(raised);
 
-      // local badge
       const localTile = document.querySelector(".local-tile");
       if (localTile) localTile.classList.toggle("hand-raised", raised);
 
@@ -551,7 +544,7 @@ function setupControls() {
     });
   }
 
-  // HOST CONTROLS (if you added host buttons in HTML)
+  // Host mute-all button (optional)
   const btnMuteAll = document.getElementById("btnMuteAll");
   if (btnMuteAll) {
     btnMuteAll.addEventListener("click", () => {
@@ -561,9 +554,50 @@ function setupControls() {
   }
 }
 
-// Clean up streams + peers + go back home
+function updateMicButton(enabled) {
+  if (!btnMic) return;
+  const icon = btnMic.querySelector(".control-icon");
+  const label = btnMic.querySelector(".control-label");
+  if (enabled) {
+    if (icon) icon.textContent = "🎙️";
+    if (label) label.textContent = "Mute";
+  } else {
+    if (icon) icon.textContent = "🔇";
+    if (label) label.textContent = "Unmute";
+  }
+}
+
+function updateCameraButton(enabled) {
+  if (!btnCam) return;
+  const icon = btnCam.querySelector(".control-icon");
+  const label = btnCam.querySelector(".control-label");
+  if (enabled) {
+    if (icon) icon.textContent = "📷";
+    if (label) label.textContent = "Stop Video";
+  } else {
+    if (icon) icon.textContent = "📷";
+    if (label) label.textContent = "Start Video";
+  }
+}
+
+function updateRaiseHandButton(raised) {
+  if (!btnRaise) return;
+  const icon = btnRaise.querySelector(".control-icon");
+  const label = btnRaise.querySelector(".control-label");
+  if (raised) {
+    if (icon) icon.textContent = "🙌";
+    if (label) label.textContent = "Hand Raised";
+  } else {
+    if (icon) icon.textContent = "✋";
+    if (label) label.textContent = "Raise Hand";
+  }
+}
+
+// Clean up everything & go back home
 function cleanupAndLeave() {
-  socket.emit("leave-room");
+  if (socket) {
+    socket.emit("leave-room");
+  }
 
   Object.values(peers).forEach((p) => {
     if (p.pc) {
@@ -577,6 +611,7 @@ function cleanupAndLeave() {
 
   if (localStream) {
     localStream.getTracks().forEach((t) => t.stop());
+    localStream = null;
   }
 
   window.location.href = "index.html";
@@ -590,10 +625,11 @@ function setupSidebar() {
 
   const openParticipants = () => openSidebar("participants");
   const openChat = () => openSidebar("chat");
-  const closeSidebar = () => sidebarEl.classList.remove("visible");
+  const closeSidebar = () => sidebarEl.classList.remove("sidebar-visible");
 
-  if (btnOpenParticipants) btnOpenParticipants.addEventListener("click", openParticipants);
-  if (btnOpenChat) btnOpenChat.addEventListener("click", openChat);
+  if (btnParticipants)
+    btnParticipants.addEventListener("click", openParticipants);
+  if (btnChat) btnChat.addEventListener("click", openChat);
   if (btnCloseSidebar) btnCloseSidebar.addEventListener("click", closeSidebar);
 
   if (sidebarTabParticipants) {
@@ -610,13 +646,11 @@ function setupSidebar() {
 
 function openSidebar(tab) {
   if (!sidebarEl) return;
-  sidebarEl.classList.add("visible");
+  sidebarEl.classList.add("sidebar-visible");
   switchSidebarTab(tab);
 }
 
 function switchSidebarTab(tab) {
-  if (!sidebarEl) return;
-
   const isParticipants = tab === "participants";
 
   if (sidebarTabParticipants)
@@ -624,8 +658,8 @@ function switchSidebarTab(tab) {
   if (sidebarTabChat)
     sidebarTabChat.classList.toggle("active", !isParticipants);
 
-  if (sidebarViewParticipants)
-    sidebarViewParticipants.style.display = isParticipants ? "block" : "none";
-  if (sidebarViewChat)
-    sidebarViewChat.style.display = !isParticipants ? "flex" : "none";
+  if (panelParticipantsEl)
+    panelParticipantsEl.classList.toggle("active", isParticipants);
+  if (panelChatEl)
+    panelChatEl.classList.toggle("active", !isParticipants);
 }
