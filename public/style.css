@@ -1,123 +1,383 @@
 /* ============================================================================
-   MINI ZOOM — ZOOM-LIKE UI
+   MEDZOOM AI - UNIFIED STYLES (Works for both pages)
    ========================================================================== */
 
 :root {
-  --bg-gradient: linear-gradient(135deg, #17153b, #2e236c, #433d8b);
-  --card-bg: rgba(18, 18, 34, 0.95);
-  --accent: #ffb703;
-  --accent-soft: rgba(255, 183, 3, 0.12);
-  --text-main: #f5f5ff;
-  --text-muted: #c5c5e5;
-  --danger: #ff4b5c;
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.55);
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-  --control-bg: rgba(20, 20, 30, 0.9);
+  /* Medical Color Scheme */
+  --medical-blue: #1a73e8;
+  --medical-dark: #0d47a1;
+  --medical-light: #e8f4f8;
+  --medical-teal: #00796b;
+  --medical-green: #43a047;
+  --medical-red: #e53935;
+  --text-dark: #1a237e;
+  --text-gray: #5f6368;
+  --text-light: #9aa0a6;
+  --bg-white: #ffffff;
+  --bg-light: #f8f9fa;
+  --bg-lighter: #f1f8ff;
+  --border-light: #e0e0e0;
+  --border-blue: #bbdefb;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --transition: all 0.3s ease;
 }
 
-/* BASIC RESET -------------------------------------------------------------- */
-
-*,
-*::before,
-*::after {
+* {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-html,
 body {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  color: var(--text-main);
-  background-image: var(--bg-gradient);
-  background-attachment: fixed;
-  overflow: hidden; /* stop page scroll so controls always at bottom */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: var(--text-dark);
+  background: var(--bg-white);
+  line-height: 1.6;
 }
 
 /* ============================================================================
-   HOME PAGE (index.html)
+   INDEX.HTML STYLES
    ========================================================================== */
 
-.app-container.center {
+/* NAVBAR */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-white);
+  border-bottom: 2px solid var(--medical-blue);
+  z-index: 1000;
+  padding: 0 20px;
+  box-shadow: 0 2px 10px rgba(26, 115, 232, 0.1);
+}
+
+.nav-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 70px;
 }
 
-.card {
-  width: 100%;
-  max-width: 420px;
-  padding: 28px 24px 24px;
-  background: var(--card-bg);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-soft);
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: blur(16px);
-}
-
-.app-title {
-  margin: 0 0 8px;
-  font-size: 1.9rem;
-}
-
-.app-subtitle {
-  margin-bottom: 20px;
-  color: var(--text-muted);
-}
-
-.form {
+.logo {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--medical-blue);
 }
 
-.label {
-  font-size: 0.9rem;
-  color: var(--text-muted);
+.logo-icon {
+  font-size: 28px;
 }
 
-.input {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(5, 5, 20, 0.9);
-  color: var(--text-main);
-  font-size: 1rem;
-  outline: none;
+/* HERO SECTION */
+.hero-section {
+  margin-top: 70px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--medical-light) 0%, var(--bg-light) 100%);
 }
 
-.input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent-soft);
+.hero-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.hero-content {
+  max-width: 500px;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  color: var(--text-dark);
+}
+
+.highlight {
+  color: var(--medical-blue);
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  color: var(--text-gray);
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+/* ACTION BUTTONS */
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
 }
 
 .primary-btn {
-  margin-top: 10px;
-  padding: 12px 16px;
-  background: var(--accent);
-  color: #111;
-  border-radius: 999px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
+  background: var(--medical-blue);
+  color: white;
 }
 
-.error-text {
-  color: var(--danger);
-  min-height: 18px;
+.primary-btn:hover {
+  background: var(--medical-teal);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.secondary-btn {
+  background: white;
+  color: var(--medical-blue);
+  border: 2px solid var(--medical-blue);
+}
+
+.secondary-btn:hover {
+  background: var(--medical-blue);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-icon {
+  font-size: 1.3rem;
+}
+
+/* MEDICAL CONSULTATION PREVIEW */
+.hero-graphic {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.consultation-preview {
+  position: relative;
+  width: 480px;
+  height: 320px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 15px;
+}
+
+.medical-tile {
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--border-blue);
+}
+
+.doctor-tile {
+  grid-column: 1;
+  grid-row: 1;
+  background: linear-gradient(135deg, var(--medical-blue) 0%, #6ab0ff 100%);
+}
+
+.patient-tile {
+  grid-column: 2;
+  grid-row: 1;
+  background: linear-gradient(135deg, var(--medical-green) 0%, #81c784 100%);
+}
+
+.xray-tile {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  background: linear-gradient(135deg, #5f6368 0%, #9aa0a6 100%);
+}
+
+.medical-bg, .patient-bg {
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+}
+
+.xray-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.xray-image {
+  width: 80%;
+  height: 60%;
+  background: linear-gradient(45deg, #e0e0e0 25%, transparent 25%), 
+              linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), 
+              linear-gradient(45deg, transparent 75%, #e0e0e0 75%), 
+              linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  border: 2px solid #bdbdbd;
+  margin-bottom: 10px;
+}
+
+.ai-analysis {
+  background: var(--medical-green);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.user-name {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.medical-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--medical-red);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.vital-signs {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-dark);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.scan-label {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* BIG FEATURES SECTION */
+.features-section {
+  padding: 100px 20px;
+  background: linear-gradient(135deg, var(--bg-white) 0%, var(--medical-light) 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.features-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.features-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+}
+
+.features-subtitle {
+  font-size: 1.3rem;
+  color: var(--text-gray);
+  margin-bottom: 60px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.big-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.big-feature-item {
+  background: white;
+  padding: 50px 30px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--border-blue);
+  transition: var(--transition);
+  text-align: center;
+}
+
+.big-feature-item:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.big-feature-icon {
+  font-size: 5rem;
+  margin-bottom: 30px;
+}
+
+.big-feature-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--medical-blue);
+  margin-bottom: 20px;
+}
+
+.big-feature-description {
+  font-size: 1.1rem;
+  color: var(--text-gray);
+  line-height: 1.7;
 }
 
 /* ============================================================================
-   MEETING PAGE (room.html)
+   ROOM.HTML STYLES (Medical Light Theme)
    ========================================================================== */
+
+/* ROOM PAGE BACKGROUND */
+body[data-page="room"] {
+  background: var(--medical-light);
+  height: 100vh;
+  overflow: hidden;
+}
 
 .meeting-root {
   height: 100vh;
@@ -127,41 +387,42 @@ body {
   gap: 10px;
 }
 
-/* TOP BAR --------------------------------------------------------------- */
-
+/* TOP BAR - Medical Theme */
 .top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
-  background: rgba(10, 10, 25, 0.9);
+  padding: 12px 20px;
+  background: var(--bg-white);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-soft);
+  border: 2px solid var(--medical-blue);
+  box-shadow: var(--shadow);
 }
 
 .badge {
-  padding: 3px 8px;
+  padding: 4px 12px;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.7rem;
+  background: var(--medical-blue);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
   text-transform: uppercase;
-  margin-right: 6px;
+  margin-right: 10px;
 }
 
 .room-label {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-dark);
 }
 
 .username-label {
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  font-size: 1rem;
+  color: var(--text-gray);
+  font-weight: 500;
 }
 
-/* VIDEO AREA ------------------------------------------------------------ */
-
+/* VIDEO AREA - Light Theme */
 .video-area {
   flex: 1;
   display: flex;
@@ -170,55 +431,40 @@ body {
   width: 100%;
   margin: 0 auto;
   overflow: hidden;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-blue);
 }
 
-/* Grid that contains local + remote tiles */
 .video-grid {
   flex: 1;
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
   align-items: stretch;
-}
-
-/* Zoom-style layout while screen sharing:
-   big screen on left, small vertical strip on right */
-.video-grid.screen-share-layout {
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1.1fr);
-  grid-auto-rows: minmax(0, 1fr);
-  grid-auto-flow: row;
-  align-items: stretch;
-  overflow-y: auto; /* when many tiles, scroll the area */
+  padding: 15px;
+  background: var(--bg-white);
 }
 
 /* Video tile wrapper */
 .remote-video-wrapper {
   position: relative;
-  background: #000;
+  background: var(--bg-light);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid var(--border-subtle);
+  border: 2px solid var(--border-blue);
   width: 100%;
-  aspect-ratio: 16 / 9;   /* keeps video 16:9 */
+  aspect-ratio: 16 / 9;
   max-height: 100%;
-}
-
-/* main big tile for shared screen */
-.screen-share-tile {
-  grid-column: 1 / 2;
-  grid-row: 1 / -1;
-  aspect-ratio: auto;
-}
-
-/* side thumbnails (right strip) */
-.thumbnail-tile {
-  grid-column: 2 / 3;
+  box-shadow: var(--shadow);
 }
 
 /* Local tile has highlight */
 .local-tile {
-  outline: 2px solid var(--accent-soft);
+  border: 2px solid var(--medical-blue);
+  box-shadow: 0 0 0 2px var(--medical-light);
 }
 
 /* Actual video element */
@@ -228,142 +474,86 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: var(--bg-light);
 }
 
-/* for shared screen, show whole screen nicely */
-.screen-share-tile .remote-video {
-  object-fit: contain;
-  background: #000;
-}
-
-/* Video label ("You" / username) */
+/* Video label */
 .video-label {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 3px 8px;
+  left: 10px;
+  bottom: 10px;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.6);
-  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
-/* Hand raised visual on tile */
-.remote-video-wrapper.hand-raised {
-  outline: 2px solid rgba(255, 183, 3, 0.9);
-  box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.25);
-}
-
-.remote-video-wrapper.hand-raised::after {
-  content: "✋";
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  background: rgba(255, 183, 3, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  color: #111;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7);
-}
-
-/* ============================================================================
-   ZOOM-STYLE CONTROLS BAR (floating)
-   ========================================================================== */
-
+/* MEDICAL CONTROLS BAR */
 .controls-bar {
   position: fixed;
   left: 50%;
-  bottom: 12px;
+  bottom: 20px;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 10px 20px;
   border-radius: 999px;
-  background: var(--control-bg);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  background: var(--bg-white);
+  border: 2px solid var(--medical-blue);
+  box-shadow: var(--shadow-lg);
   z-index: 40;
 }
 
 .control-btn {
-  position: relative; /* for unread badge */
-  min-width: 76px;
-  padding: 6px 10px;
-  border-radius: 10px;
+  position: relative;
+  min-width: 80px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
   border: none;
   background: transparent;
-  color: var(--text-main);
-  font-size: 0.78rem;
+  color: var(--text-dark);
+  font-size: 0.8rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
-  transition: background 0.15s ease-out, transform 0.1s ease-out,
-    opacity 0.15s ease-out;
+  transition: var(--transition);
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.control-btn:active {
-  transform: translateY(1px);
-  opacity: 0.8;
+  background: var(--medical-light);
+  transform: translateY(-2px);
 }
 
 .control-icon {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
 }
 
 .control-label {
   font-size: 0.75rem;
+  font-weight: 600;
 }
 
-/* Leave button (red) */
+/* Leave button (medical red) */
 .leave-btn {
-  background: var(--danger);
-  color: #fff;
+  background: var(--medical-red);
+  color: white;
   border-radius: 999px;
-  padding-inline: 16px;
+  padding-inline: 20px;
+  margin-left: 10px;
 }
 
 .leave-btn:hover {
-  background: #ff3347;
+  background: #d32f2f;
+  transform: translateY(-2px);
 }
 
-/* Raised hand state (button) */
-#btnRaiseHand.raised {
-  background: rgba(255, 183, 3, 0.16);
-}
-
-/* Unread chat badge on Chat button */
-.unread-badge {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--danger);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
-}
-
-/* in case browser doesn't already do this */
-[hidden] {
-  display: none !important;
-}
-
-/* ============================================================================
-   SLIDE-IN SIDEBAR (Participants / Chat)
-   ========================================================================== */
-
+/* MEDICAL SIDEBAR */
 .sidebar {
   position: fixed;
   top: 0;
@@ -371,9 +561,9 @@ body {
   width: 340px;
   max-width: 80vw;
   height: 100vh;
-  background: rgba(10, 10, 25, 0.98);
-  border-left: 1px solid var(--border-subtle);
-  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.7);
+  background: var(--bg-white);
+  border-left: 2px solid var(--medical-blue);
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.1);
   transform: translateX(100%);
   transition: transform 0.25s ease-out;
   display: flex;
@@ -389,51 +579,64 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--medical-light);
 }
 
 .sidebar-tabs {
   display: inline-flex;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-light);
   border-radius: 999px;
-  padding: 2px;
+  padding: 4px;
 }
 
 .sidebar-tab {
   border: none;
   background: transparent;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  padding: 4px 10px;
+  color: var(--text-gray);
+  font-size: 0.85rem;
+  padding: 6px 16px;
   border-radius: 999px;
   cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
 }
 
 .sidebar-tab.active {
-  background: var(--accent);
-  color: #111;
+  background: var(--medical-blue);
+  color: white;
 }
 
 .sidebar-close {
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-gray);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
+  padding: 5px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.sidebar-close:hover {
+  background: var(--bg-light);
+  color: var(--text-dark);
 }
 
 .sidebar-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 8px 10px;
-  gap: 4px;
+  padding: 20px;
+  gap: 10px;
 }
 
 .sidebar-title {
-  font-size: 0.9rem;
-  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 15px;
 }
 
 .sidebar-panel {
@@ -453,8 +656,14 @@ body {
   padding: 0;
   margin: 0;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--text-gray);
   overflow-y: auto;
+}
+
+.participants-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-weight: 500;
 }
 
 /* Chat area */
@@ -462,47 +671,317 @@ body {
   flex: 1;
   overflow-y: auto;
   font-size: 0.9rem;
-  padding-right: 4px;
+  padding-right: 10px;
+  margin-bottom: 15px;
 }
 
 .chat-msg {
-  margin-bottom: 6px;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: var(--bg-light);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--medical-blue);
 }
 
 .chat-form {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .chat-input {
   width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  background: var(--bg-white);
+  transition: var(--transition);
 }
 
-/* Scrollbar styling */
-.chat-messages::-webkit-scrollbar,
-.participants-list::-webkit-scrollbar {
-  width: 6px;
+.chat-input:focus {
+  outline: none;
+  border-color: var(--medical-blue);
+  box-shadow: 0 0 0 2px var(--medical-light);
 }
-.chat-messages::-webkit-scrollbar-thumb,
-.participants-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+
+/* Unread chat badge */
+.unread-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
+  background: var(--medical-red);
 }
 
-/* ============================================================================
-   RESPONSIVE
-   ========================================================================== */
+/* Screen share layout */
+.video-grid.screen-share-layout {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1.1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  grid-auto-flow: row;
+  align-items: stretch;
+}
 
-@media (max-width: 768px) {
-  .meeting-root {
-    padding: 8px;
+.screen-share-tile {
+  grid-column: 1 / 2;
+  grid-row: 1 / -1;
+  aspect-ratio: auto;
+}
+
+.thumbnail-tile {
+  grid-column: 2 / 3;
+}
+
+/* Hand raised visual */
+.remote-video-wrapper.hand-raised {
+  outline: 3px solid var(--medical-blue);
+  box-shadow: 0 0 0 3px var(--medical-light);
+}
+
+/* MODAL STYLES (for both pages) */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 450px;
+  animation: modalSlideIn 0.3s ease;
+  border: 2px solid var(--medical-blue);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.close-btn:hover {
+  background: var(--bg-light);
+  color: var(--text-dark);
+}
+
+.modal-body {
+  padding: 0 24px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: var(--transition);
+  background: var(--bg-white);
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: var(--medical-blue);
+  box-shadow: 0 0 0 3px var(--medical-light);
+}
+
+.error-message {
+  color: var(--medical-red);
+  font-size: 0.9rem;
+  margin-top: 10px;
+  min-height: 20px;
+  font-weight: 500;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px 24px;
+  border-top: 1px solid var(--border-light);
+}
+
+.btn-outline {
+  padding: 10px 20px;
+  border: 1px solid var(--border-light);
+  background: white;
+  color: var(--text-gray);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn-outline:hover {
+  border-color: var(--text-gray);
+  color: var(--text-dark);
+}
+
+.btn-primary {
+  padding: 10px 24px;
+  background: var(--medical-blue);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn-primary:hover {
+  background: var(--medical-teal);
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  /* Index.html responsive */
+  .hero-container {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 40px;
+  }
+  
+  .hero-title {
+    font-size: 2.8rem;
+  }
+  
+  .action-buttons {
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .action-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .consultation-preview {
+    width: 100%;
+    max-width: 400px;
+    height: 280px;
+  }
+  
+  .big-features-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  
+  .features-title {
+    font-size: 2.5rem;
+  }
+  
+  .big-feature-item {
+    padding: 40px 20px;
+  }
+  
+  .big-feature-icon {
+    font-size: 4rem;
+  }
+  
+  /* Room.html responsive */
   .controls-bar {
     flex-wrap: wrap;
-    padding-inline: 8px;
+    padding-inline: 15px;
+    bottom: 10px;
   }
-
+  
   .control-btn {
     min-width: 70px;
+    padding: 8px 10px;
+  }
+  
+  .video-grid {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+  
+  .sidebar {
+    width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2.2rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .features-title {
+    font-size: 2rem;
+  }
+  
+  .big-feature-icon {
+    font-size: 3.5rem;
+  }
+  
+  .top-bar {
+    padding: 10px 15px;
+  }
+  
+  .room-label, .username-label {
+    font-size: 0.9rem;
   }
 }

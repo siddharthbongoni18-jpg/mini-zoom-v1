@@ -1,9 +1,9 @@
-<!-- public/room.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini Zoom - Meeting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedZoom AI - Consultation Room</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body data-page="room">
@@ -12,7 +12,7 @@
     <!-- TOP BAR -->
     <header class="top-bar">
       <div class="top-bar-left">
-        <span class="badge">ROOM</span>
+        <span class="badge">CONSULTATION</span>
         <span id="roomLabel" class="room-label"></span>
       </div>
       <div class="top-bar-right">
@@ -27,7 +27,7 @@
       </div>
     </main>
 
-    <!-- ZOOM-STYLE CONTROLS (always floating at bottom) -->
+    <!-- MEDICAL CONTROLS BAR -->
     <div class="controls-bar">
       <button id="btnToggleMic" class="control-btn">
         <span class="control-icon">🎙️</span>
@@ -47,7 +47,6 @@
       <button id="btnChat" class="control-btn">
         <span class="control-icon">💬</span>
         <span class="control-label">Chat</span>
-        <!-- unread chat badge -->
         <span id="chatUnreadBadge" class="unread-badge" hidden></span>
       </button>
 
@@ -66,7 +65,7 @@
       </button>
     </div>
 
-    <!-- SLIDE-IN SIDEBAR (Participants / Chat) -->
+    <!-- MEDICAL SIDEBAR -->
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-tabs">
@@ -81,13 +80,11 @@
       </div>
 
       <div class="sidebar-body">
-        <!-- Participants panel -->
         <div id="panelParticipants" class="sidebar-panel active">
           <h2 class="sidebar-title">Participants</h2>
           <ul id="participantsList" class="participants-list"></ul>
         </div>
 
-        <!-- Chat panel -->
         <div id="panelChat" class="sidebar-panel">
           <h2 class="sidebar-title">Chat</h2>
           <div id="chatMessages" class="chat-messages"></div>

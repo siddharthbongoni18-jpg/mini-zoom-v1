@@ -1,15 +1,134 @@
 // ===============================
-//   MINI ZOOM - CLIENT SCRIPT (ZOOM UI + HOST + HAND RAISE + SCREEN LAYOUT + UNREAD CHAT)
+//   MEDZOOM AI - COMBINED SCRIPT (Works for both pages)
+// ===============================
+
+// ===============================
+//   HOME PAGE FUNCTIONALITY (index.html)
+// ===============================
+
+function initHomePage() {
+  console.log("Initializing Home Page...");
+
+  // DOM references for home page modals
+  const startBtn = document.getElementById('startConsultationBtn');
+  const joinBtn = document.getElementById('joinConsultationBtn');
+
+  const startModal = document.getElementById('startModal');
+  const startNameInput = document.getElementById('startName');
+  const startRoomInput = document.getElementById('startRoomId');
+  const startModalError = document.getElementById('startModalError');
+  const closeStartModal = document.getElementById('closeStartModal');
+  const cancelStart = document.getElementById('cancelStart');
+  const confirmStart = document.getElementById('confirmStart');
+
+  const joinModal = document.getElementById('joinModal');
+  const joinRoomInput = document.getElementById('consultationId');
+  const joinNameInput = document.getElementById('patientName');
+  const joinModalError = document.getElementById('modalError');
+  const closeJoinModal = document.getElementById('closeModal');
+  const cancelJoin = document.getElementById('cancelJoin');
+  const confirmJoin = document.getElementById('confirmJoin');
+
+  // ===============================
+  //   START CONSULTATION FLOW
+  // ===============================
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      // If start modal exists, use manual name + room flow
+      if (startModal && startNameInput && startRoomInput && confirmStart) {
+        if (startModalError) startModalError.textContent = '';
+        startModal.style.display = 'flex';
+      } else {
+        // Fallback: old behavior (random room, Doctor)
+        const roomId = Math.floor(100000 + Math.random() * 900000);
+        window.location.href = `room.html?room=${roomId}&name=Doctor`;
+      }
+    });
+  }
+
+  if (closeStartModal && startModal) {
+    closeStartModal.addEventListener('click', () => {
+      startModal.style.display = 'none';
+    });
+  }
+  if (cancelStart && startModal) {
+    cancelStart.addEventListener('click', () => {
+      startModal.style.display = 'none';
+    });
+  }
+  if (confirmStart && startModal && startNameInput && startRoomInput) {
+    confirmStart.addEventListener('click', () => {
+      const name = startNameInput.value.trim();
+      const roomId = startRoomInput.value.trim();
+
+      if (!name || !roomId) {
+        if (startModalError) startModalError.textContent = 'Both fields are required.';
+        return;
+      }
+      if (!/^\d+$/.test(roomId)) {
+        if (startModalError) startModalError.textContent = 'Room ID must contain only digits.';
+        return;
+      }
+
+      window.location.href = `room.html?room=${roomId}&name=${encodeURIComponent(name)}`;
+    });
+  }
+
+  // ===============================
+  //   JOIN CONSULTATION FLOW
+  // ===============================
+  if (joinBtn) {
+    joinBtn.addEventListener('click', () => {
+      if (joinModalError) joinModalError.textContent = '';
+      if (joinModal) joinModal.style.display = 'flex';
+    });
+  }
+
+  if (closeJoinModal && joinModal) {
+    closeJoinModal.addEventListener('click', () => {
+      joinModal.style.display = 'none';
+    });
+  }
+  if (cancelJoin && joinModal) {
+    cancelJoin.addEventListener('click', () => {
+      joinModal.style.display = 'none';
+    });
+  }
+  if (confirmJoin && joinModal && joinRoomInput && joinNameInput) {
+    confirmJoin.addEventListener('click', () => {
+      const roomId = joinRoomInput.value.trim();
+      const userName = joinNameInput.value.trim() || 'Patient';
+
+      if (!roomId) {
+        if (joinModalError) joinModalError.textContent = 'Please enter a Consultation ID';
+        return;
+      }
+
+      window.location.href = `room.html?room=${roomId}&name=${encodeURIComponent(userName)}`;
+    });
+  }
+
+  // Close modals when clicking outside
+  window.addEventListener('click', (event) => {
+    if (startModal && event.target === startModal) {
+      startModal.style.display = 'none';
+    }
+    if (joinModal && event.target === joinModal) {
+      joinModal.style.display = 'none';
+    }
+  });
+
+  console.log("Home Page initialized successfully!");
+}
+
+// ===============================
+//   ROOM PAGE FUNCTIONALITY (room.html)
 // ===============================
 
 let socket = null;
 let localStream = null;
-
-// peers[socketId] = { pc: RTCPeerConnection, username: string }
 let peers = {};
-// remoteVideoElements[socketId] = wrapper <div> that contains the video + label
 let remoteVideoElements = {};
-
 let roomId = null;
 let username = null;
 
@@ -23,9 +142,7 @@ let panelParticipantsEl, panelChatEl;
 let chatUnreadBadgeEl;
 
 let hostId = null;
-let currentScreenSharerId = null; // who is sharing screen right now
-
-// sidebar / chat state
+let currentScreenSharerId = null;
 let isSidebarOpen = false;
 let activeSidebarTab = "participants";
 let unreadChatCount = 0;
@@ -47,53 +164,9 @@ const iceServers = {
   ],
 };
 
-// ===============================
-//   PAGE DETECTION
-// ===============================
-document.addEventListener("DOMContentLoaded", () => {
-  const page = document.body.dataset.page;
-  if (page === "home") initHomePage();
-  if (page === "room") initRoomPage();
-});
-
-// ===============================
-//   HOME PAGE LOGIC
-// ===============================
-function initHomePage() {
-  const joinForm = document.getElementById("joinForm");
-  const roomInput = document.getElementById("roomInput");
-  const nameInput = document.getElementById("nameInput");
-  const errorBox = document.getElementById("homeError");
-
-  if (!joinForm) return;
-
-  joinForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const room = roomInput.value.trim();
-    const name = nameInput.value.trim() || "Guest";
-
-    if (!room) {
-      errorBox.textContent = "Please enter a room number.";
-      return;
-    }
-
-    try {
-      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    } catch (err) {
-      alert("Camera / microphone is blocked. Please allow them.");
-      return;
-    }
-
-    window.location.href = `room.html?room=${room}&name=${encodeURIComponent(
-      name
-    )}`;
-  });
-}
-
-// ===============================
-//   ROOM PAGE LOGIC
-// ===============================
 async function initRoomPage() {
+  console.log("Initializing Room Page...");
+  
   const params = new URLSearchParams(window.location.search);
   roomId = params.get("room");
   username = params.get("name") || "Guest";
@@ -142,11 +215,14 @@ async function initRoomPage() {
   setupControls();
   setupChat();
   setupSidebar();
+
+  console.log("Room Page initialized successfully!");
 }
 
 // ===============================
-//   INIT LOCAL MEDIA
+//   ROOM PAGE: INIT LOCAL MEDIA
 // ===============================
+
 async function initLocalMedia() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
@@ -160,12 +236,12 @@ async function initLocalMedia() {
     const video = document.createElement("video");
     video.autoplay = true;
     video.playsInline = true;
-    video.muted = true; // avoids echo
+    video.muted = true;
     video.srcObject = localStream;
     video.className = "remote-video";
 
     const label = document.createElement("div");
-    label.textContent = "You";
+    label.textContent = username + " (You)";
     label.className = "video-label";
 
     wrapper.appendChild(video);
@@ -182,28 +258,25 @@ async function initLocalMedia() {
 }
 
 // ===============================
-//   SOCKET.IO EVENTS
+//   ROOM PAGE: SOCKET.IO EVENTS
 // ===============================
+
 function registerSocketEvents() {
-  // existing users -> only new client receives this
-  // users: { socketId: name, ... }
   socket.on("existing-users", (users) => {
     if (!users) return;
     Object.entries(users).forEach(([id, name]) => {
       if (!peers[id]) peers[id] = {};
       peers[id].username = name;
-      createPeerConnection(id, true); // we initiate offers to existing users
+      createPeerConnection(id, true);
     });
   });
 
-  // new user joined -> broadcast to existing clients
   socket.on("user-joined", ({ socketId, name }) => {
     if (!peers[socketId]) peers[socketId] = {};
     peers[socketId].username = name;
-    createPeerConnection(socketId, false); // we wait for offer
+    createPeerConnection(socketId, false);
   });
 
-  // offer -> we must answer
   socket.on("offer", async ({ offer, senderId }) => {
     if (!peers[senderId]) peers[senderId] = {};
     createPeerConnection(senderId, false);
@@ -220,7 +293,6 @@ function registerSocketEvents() {
     }
   });
 
-  // answer -> only offer creator receives this
   socket.on("answer", async ({ answer, senderId }) => {
     const pc = peers[senderId]?.pc;
     if (!pc) return;
@@ -231,7 +303,6 @@ function registerSocketEvents() {
     }
   });
 
-  // ICE candidates
   socket.on("ice-candidate", async ({ candidate, senderId }) => {
     const pc = peers[senderId]?.pc;
     if (!pc || !candidate) return;
@@ -242,30 +313,25 @@ function registerSocketEvents() {
     }
   });
 
-  // someone left
   socket.on("user-left", (socketId) => {
     removePeer(socketId);
   });
 
-  // participants list
   socket.on("room-users", (users) => {
     updateParticipants(users);
   });
 
-  // host info
   socket.on("room-host", ({ hostId: hId }) => {
     hostId = hId;
     highlightHost();
   });
 
-  // chat
   socket.on("chat-message", ({ message, name }) => {
     addChatMessage(name, message);
 
     const isOwn = name === username || name === "You";
     const isSystem = name === "System";
 
-    // only show unread if it's from others and chat isn't open
     if (!isOwn && !isSystem) {
       if (!(isSidebarOpen && activeSidebarTab === "chat")) {
         incrementUnreadChat();
@@ -273,24 +339,19 @@ function registerSocketEvents() {
     }
   });
 
-  // hand raise
   socket.on("hand-raise", ({ socketId: sId, username: uname, raised }) => {
-    const labelText = `${uname} has ${
-      raised ? "raised" : "lowered"
-    } their hand ✋`;
+    const labelText = `${uname} has ${raised ? "raised" : "lowered"} their hand ✋`;
     addChatMessage("System", labelText);
 
-    const targetTile =
-      sId === socket.id
-        ? document.querySelector(".local-tile")
-        : remoteVideoElements[sId];
+    const targetTile = sId === socket.id
+      ? document.querySelector(".local-tile")
+      : remoteVideoElements[sId];
 
     if (targetTile) {
       targetTile.classList.toggle("hand-raised", raised);
     }
   });
 
-  // host controls (mute all)
   socket.on("force-mute", () => {
     if (!localStream) return;
     const track = localStream.getAudioTracks()[0];
@@ -298,13 +359,11 @@ function registerSocketEvents() {
     updateMicButton(false);
   });
 
-  // kicked by host
   socket.on("kicked", () => {
     alert("You have been removed from the meeting by the host.");
     cleanupAndLeave();
   });
 
-  // SCREEN SHARE LAYOUT EVENTS
   socket.on("screen-share-start", ({ socketId: sharerId }) => {
     currentScreenSharerId = sharerId;
     applyScreenShareLayout();
@@ -317,25 +376,23 @@ function registerSocketEvents() {
 }
 
 // ===============================
-//   CREATE PEER CONNECTION
+//   ROOM PAGE: CREATE PEER CONNECTION
 // ===============================
+
 function createPeerConnection(remoteId, isInitiator) {
   if (!peers[remoteId]) peers[remoteId] = {};
 
-  // avoid duplicates
   if (peers[remoteId].pc instanceof RTCPeerConnection) return;
 
   const pc = new RTCPeerConnection(iceServers);
   peers[remoteId].pc = pc;
 
-  // add local tracks
   if (localStream) {
     localStream.getTracks().forEach((track) => {
       pc.addTrack(track, localStream);
     });
   }
 
-  // ICE -> send to remote
   pc.onicecandidate = (event) => {
     if (event.candidate) {
       socket.emit("ice-candidate", {
@@ -345,7 +402,6 @@ function createPeerConnection(remoteId, isInitiator) {
     }
   };
 
-  // remote tracks
   pc.ontrack = (event) => {
     const stream = event.streams[0];
     if (!stream) return;
@@ -375,7 +431,6 @@ function createPeerConnection(remoteId, isInitiator) {
       if (video) video.srcObject = stream;
     }
 
-    // if someone is already sharing, update layout so new tile goes to side
     if (currentScreenSharerId) {
       applyScreenShareLayout();
     }
@@ -391,7 +446,6 @@ function createPeerConnection(remoteId, isInitiator) {
     }
   };
 
-  // if we are the initiator, create & send offer
   if (isInitiator) {
     setTimeout(async () => {
       try {
@@ -406,8 +460,9 @@ function createPeerConnection(remoteId, isInitiator) {
 }
 
 // ===============================
-//   SCREEN SHARE LAYOUT HELPERS
+//   ROOM PAGE: SCREEN SHARE LAYOUT
 // ===============================
+
 function applyScreenShareLayout() {
   const grid = document.getElementById("remoteVideos");
   if (!grid) return;
@@ -416,7 +471,6 @@ function applyScreenShareLayout() {
 
   const localTile = document.querySelector(".local-tile");
 
-  // clear old classes
   if (localTile) {
     localTile.classList.remove("screen-share-tile", "thumbnail-tile");
   }
@@ -426,19 +480,14 @@ function applyScreenShareLayout() {
 
   const sharerId = currentScreenSharerId;
 
-  // mark tiles
   if (sharerId && remoteVideoElements[sharerId]) {
-    // remote person is sharing
     remoteVideoElements[sharerId].classList.add("screen-share-tile");
 
-    // local + others go to thumbnail column
     if (localTile) localTile.classList.add("thumbnail-tile");
     Object.entries(remoteVideoElements).forEach(([id, el]) => {
       if (id !== sharerId) el.classList.add("thumbnail-tile");
     });
   } else {
-    // we (this client) might be sharing (others see our screen),
-    // or we don't know sharer -> just put local as thumbnail
     if (localTile) localTile.classList.add("thumbnail-tile");
     Object.values(remoteVideoElements).forEach((el) =>
       el.classList.add("thumbnail-tile")
@@ -462,8 +511,9 @@ function resetScreenShareLayout() {
 }
 
 // ===============================
-//   REMOVE PEER
+//   ROOM PAGE: REMOVE PEER
 // ===============================
+
 function removePeer(socketId) {
   if (peers[socketId]?.pc) {
     try {
@@ -479,7 +529,6 @@ function removePeer(socketId) {
     delete remoteVideoElements[socketId];
   }
 
-  // if the person who left was screen sharer, reset layout
   if (currentScreenSharerId === socketId) {
     currentScreenSharerId = null;
     resetScreenShareLayout();
@@ -487,8 +536,9 @@ function removePeer(socketId) {
 }
 
 // ===============================
-//   PARTICIPANTS LIST
+//   ROOM PAGE: PARTICIPANTS LIST
 // ===============================
+
 function updateParticipants(users) {
   if (!participantsListEl) return;
   participantsListEl.innerHTML = "";
@@ -500,7 +550,7 @@ function updateParticipants(users) {
 
     const li = document.createElement("li");
     li.textContent = id === socket.id ? `${name} (You)` : name;
-    if (id === hostId) li.textContent += " ⭐ (Host)";
+    if (id === hostId) li.textContent += " 👨‍⚕️ (Host)";
     participantsListEl.appendChild(li);
   });
 
@@ -511,15 +561,17 @@ function highlightHost() {
   if (!participantsListEl) return;
   const items = participantsListEl.querySelectorAll("li");
   items.forEach((li) => {
-    if (li.textContent.includes("⭐ (Host)")) {
-      li.classList.add("host-item");
+    if (li.textContent.includes("👨‍⚕️ (Host)")) {
+      li.style.fontWeight = "600";
+      li.style.color = "var(--medical-blue)";
     }
   });
 }
 
 // ===============================
-//   CHAT
+//   ROOM PAGE: CHAT
 // ===============================
+
 function setupChat() {
   if (!chatFormEl) return;
 
@@ -531,8 +583,6 @@ function setupChat() {
     socket.emit("chat-message", { roomId, message: msg, name: username });
     addChatMessage("You", msg);
     chatInputEl.value = "";
-    // you sent message yourself -> already seeing chat,
-    // so no unread increment here
   });
 }
 
@@ -552,7 +602,6 @@ function escapeHtml(s) {
     .replace(/>/g, "&gt;");
 }
 
-// unread chat helpers
 function incrementUnreadChat() {
   unreadChatCount++;
   if (chatUnreadBadgeEl) {
@@ -568,8 +617,9 @@ function markChatAsRead() {
 }
 
 // ===============================
-//   CONTROL BUTTONS (MIC, CAM, SCREEN, HAND, LEAVE)
+//   ROOM PAGE: CONTROL BUTTONS
 // ===============================
+
 function setupControls() {
   // MIC
   if (btnMic) {
@@ -646,15 +696,6 @@ function setupControls() {
       cleanupAndLeave();
     });
   }
-
-  // Host mute-all button (optional, if you add it in HTML)
-  const btnMuteAll = document.getElementById("btnMuteAll");
-  if (btnMuteAll) {
-    btnMuteAll.addEventListener("click", () => {
-      if (socket.id !== hostId) return;
-      socket.emit("host-mute-all", { roomId });
-    });
-  }
 }
 
 function updateMicButton(enabled) {
@@ -696,7 +737,6 @@ function updateRaiseHandButton(raised) {
   }
 }
 
-// Clean up everything & go back home
 function cleanupAndLeave() {
   if (socket) {
     socket.emit("leave-room");
@@ -721,8 +761,9 @@ function cleanupAndLeave() {
 }
 
 // ===============================
-//   SIDEBAR (PARTICIPANTS / CHAT)
+//   ROOM PAGE: SIDEBAR
 // ===============================
+
 function setupSidebar() {
   if (!sidebarEl) return;
 
@@ -730,20 +771,15 @@ function setupSidebar() {
   const openChat = () => openSidebar("chat");
   const closeSidebarFn = () => closeSidebar();
 
-  if (btnParticipants)
-    btnParticipants.addEventListener("click", openParticipants);
+  if (btnParticipants) btnParticipants.addEventListener("click", openParticipants);
   if (btnChat) btnChat.addEventListener("click", openChat);
   if (btnCloseSidebar) btnCloseSidebar.addEventListener("click", closeSidebarFn);
 
   if (sidebarTabParticipants) {
-    sidebarTabParticipants.addEventListener("click", () =>
-      switchSidebarTab("participants")
-    );
+    sidebarTabParticipants.addEventListener("click", () => switchSidebarTab("participants"));
   }
   if (sidebarTabChat) {
-    sidebarTabChat.addEventListener("click", () =>
-      switchSidebarTab("chat")
-    );
+    sidebarTabChat.addEventListener("click", () => switchSidebarTab("chat"));
   }
 }
 
@@ -774,8 +810,30 @@ function switchSidebarTab(tab) {
   if (panelChatEl)
     panelChatEl.classList.toggle("active", !isParticipants);
 
-  // if user switched to Chat tab while sidebar is open -> mark as read
   if (isSidebarOpen && tab === "chat") {
     markChatAsRead();
   }
 }
+
+// ===============================
+//   MAIN INITIALIZATION
+// ===============================
+
+document.addEventListener("DOMContentLoaded", () => {
+  const page = document.body.dataset.page;
+  console.log("Detected page:", page);
+  
+  if (page === "home") {
+    initHomePage();
+  } else if (page === "room") {
+    initRoomPage();
+  } else {
+    console.log("No page detected, running default initialization");
+    // If no data-page attribute, check which page we're on by elements
+    if (document.getElementById('startConsultationBtn')) {
+      initHomePage();
+    } else if (document.getElementById('remoteVideos')) {
+      initRoomPage();
+    }
+  }
+});

@@ -1,58 +1,140 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini Zoom - Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedZoom AI - Secure Medical Video Consultations</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body data-page="home">
-  <div class="app-container center">
-    <div class="card">
-      <h1 class="app-title">Mini Zoom</h1>
-      <p class="app-subtitle">
-        Simple WebRTC video meetings with chat & screen share.
-      </p>
 
-      <!-- Room join form -->
-      <form id="joinForm" class="form">
-        <!-- Room number input (required) -->
-        <label for="roomInput" class="label">Room Number</label>
-        <input
-          id="roomInput"
-          type="text"
-          class="input"
-          placeholder="e.g. 1234"
-          autocomplete="off"
-        />
+  <!-- CLEAN NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-icon">🏥</span>
+        <span class="logo-text">MedZoom AI</span>
+      </div>
+    </div>
+  </nav>
 
-        <!-- Optional display name -->
-        <label for="nameInput" class="label">Your Name (optional)</label>
-        <input
-          id="nameInput"
-          type="text"
-          class="input"
-          placeholder="e.g. Alice"
-          autocomplete="off"
-        />
+  <!-- MAIN HERO SECTION -->
+  <main class="hero-section">
+    <div class="hero-container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="highlight">AI-Powered</span> Medical Consultations
+        </h1>
+        <p class="hero-subtitle">
+          Connect with healthcare professionals instantly.
+        </p>
 
-        <!-- Error message area (no alerts) -->
-        <div id="homeError" class="error-text"></div>
+        <!-- ACTION BUTTONS -->
+        <div class="action-buttons">
+          <button id="startConsultationBtn" class="action-btn primary-btn">
+            <span class="btn-icon">🎯</span>
+            Start Consultation
+          </button>
 
-        <button type="submit" class="btn primary-btn">
-          Join Room
-        </button>
-      </form>
+          <button id="joinConsultationBtn" class="action-btn secondary-btn">
+            <span class="btn-icon">🔗</span>
+            Join Consultation
+          </button>
+        </div>
+      </div>
 
-      <p class="hint">
-        💡 Tip: Ask a friend to open this page on another device/network and
-        enter the same room number.
-      </p>
+      <!-- STATIC SAMPLE PREVIEW -->
+      <div class="hero-graphic">
+        <div class="consultation-preview">
+          <div class="medical-tile doctor-tile">
+            <div class="video-content medical-bg"></div>
+            <div class="user-name">Dr. Sarah Chen</div>
+            <div class="medical-badge">Cardiologist</div>
+          </div>
+
+          <div class="medical-tile patient-tile">
+            <div class="video-content patient-bg"></div>
+            <div class="user-name">Patient: John M.</div>
+            <div class="vital-signs">BP: 120/80 | HR: 72</div>
+          </div>
+
+          <div class="medical-tile xray-tile">
+            <div class="xray-content">
+              <div class="xray-image"></div>
+              <div class="ai-analysis">AI Analysis: Normal</div>
+            </div>
+            <div class="scan-label">Chest X-Ray</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =============================== -->
+  <!-- NEW START CONSULTATION MODAL   -->
+  <!-- =============================== -->
+  <div id="startModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create Consultation</h2>
+        <button id="closeStartModal" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="input-group">
+          <label class="input-label">Your Name</label>
+          <input id="startName" class="modal-input" placeholder="Enter your name" />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Room ID</label>
+          <input id="startRoomId" class="modal-input" placeholder="Enter room ID (any digits)" />
+        </div>
+
+        <div id="startModalError" class="error-message"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="cancelStart" class="btn-outline">Cancel</button>
+        <button id="confirmStart" class="btn-primary">Start Consultation</button>
+      </div>
     </div>
   </div>
 
-  <!-- REQUIRED: load socket.io before script.js -->
+  <!-- JOIN CONSULTATION MODAL (OLD ONE) -->
+  <div id="joinModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Join Medical Consultation</h2>
+        <button id="closeModal" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="input-group">
+          <label for="consultationId" class="input-label">Consultation ID</label>
+          <input id="consultationId" class="modal-input" placeholder="Enter room ID" />
+        </div>
+
+        <div class="input-group">
+          <label for="patientName" class="input-label">Your Name</label>
+          <input id="patientName" class="modal-input" placeholder="Enter your name" />
+        </div>
+
+        <div id="modalError" class="error-message"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="cancelJoin" class="btn-outline">Cancel</button>
+        <button id="confirmJoin" class="btn-primary">Join Consultation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
+
 </body>
 </html>
