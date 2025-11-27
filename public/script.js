@@ -10,34 +10,34 @@ function initHomePage() {
   console.log("Initializing Home Page...");
 
   // DOM references for home page modals
-  const startBtn = document.getElementById('startConsultationBtn');
-  const joinBtn = document.getElementById('joinConsultationBtn');
+  const startBtn = document.getElementById("startConsultationBtn");
+  const joinBtn = document.getElementById("joinConsultationBtn");
 
-  const startModal = document.getElementById('startModal');
-  const startNameInput = document.getElementById('startName');
-  const startRoomInput = document.getElementById('startRoomId');
-  const startModalError = document.getElementById('startModalError');
-  const closeStartModal = document.getElementById('closeStartModal');
-  const cancelStart = document.getElementById('cancelStart');
-  const confirmStart = document.getElementById('confirmStart');
+  const startModal = document.getElementById("startModal");
+  const startNameInput = document.getElementById("startName");
+  const startRoomInput = document.getElementById("startRoomId");
+  const startModalError = document.getElementById("startModalError");
+  const closeStartModal = document.getElementById("closeStartModal");
+  const cancelStart = document.getElementById("cancelStart");
+  const confirmStart = document.getElementById("confirmStart");
 
-  const joinModal = document.getElementById('joinModal');
-  const joinRoomInput = document.getElementById('consultationId');
-  const joinNameInput = document.getElementById('patientName');
-  const joinModalError = document.getElementById('modalError');
-  const closeJoinModal = document.getElementById('closeModal');
-  const cancelJoin = document.getElementById('cancelJoin');
-  const confirmJoin = document.getElementById('confirmJoin');
+  const joinModal = document.getElementById("joinModal");
+  const joinRoomInput = document.getElementById("consultationId");
+  const joinNameInput = document.getElementById("patientName");
+  const joinModalError = document.getElementById("modalError");
+  const closeJoinModal = document.getElementById("closeModal");
+  const cancelJoin = document.getElementById("cancelJoin");
+  const confirmJoin = document.getElementById("confirmJoin");
 
   // ===============================
   //   START CONSULTATION FLOW
   // ===============================
   if (startBtn) {
-    startBtn.addEventListener('click', () => {
+    startBtn.addEventListener("click", () => {
       // If start modal exists, use manual name + room flow
       if (startModal && startNameInput && startRoomInput && confirmStart) {
-        if (startModalError) startModalError.textContent = '';
-        startModal.style.display = 'flex';
+        if (startModalError) startModalError.textContent = "";
+        startModal.style.display = "flex";
       } else {
         // Fallback: old behavior (random room, Doctor)
         const roomId = Math.floor(100000 + Math.random() * 900000);
@@ -47,30 +47,34 @@ function initHomePage() {
   }
 
   if (closeStartModal && startModal) {
-    closeStartModal.addEventListener('click', () => {
-      startModal.style.display = 'none';
+    closeStartModal.addEventListener("click", () => {
+      startModal.style.display = "none";
     });
   }
   if (cancelStart && startModal) {
-    cancelStart.addEventListener('click', () => {
-      startModal.style.display = 'none';
+    cancelStart.addEventListener("click", () => {
+      startModal.style.display = "none";
     });
   }
   if (confirmStart && startModal && startNameInput && startRoomInput) {
-    confirmStart.addEventListener('click', () => {
+    confirmStart.addEventListener("click", () => {
       const name = startNameInput.value.trim();
       const roomId = startRoomInput.value.trim();
 
       if (!name || !roomId) {
-        if (startModalError) startModalError.textContent = 'Both fields are required.';
+        if (startModalError) startModalError.textContent =
+          "Both fields are required.";
         return;
       }
       if (!/^\d+$/.test(roomId)) {
-        if (startModalError) startModalError.textContent = 'Room ID must contain only digits.';
+        if (startModalError) startModalError.textContent =
+          "Room ID must contain only digits.";
         return;
       }
 
-      window.location.href = `room.html?room=${roomId}&name=${encodeURIComponent(name)}`;
+      window.location.href = `room.html?room=${roomId}&name=${encodeURIComponent(
+        name
+      )}`;
     });
   }
 
@@ -78,43 +82,46 @@ function initHomePage() {
   //   JOIN CONSULTATION FLOW
   // ===============================
   if (joinBtn) {
-    joinBtn.addEventListener('click', () => {
-      if (joinModalError) joinModalError.textContent = '';
-      if (joinModal) joinModal.style.display = 'flex';
+    joinBtn.addEventListener("click", () => {
+      if (joinModalError) joinModalError.textContent = "";
+      if (joinModal) joinModal.style.display = "flex";
     });
   }
 
   if (closeJoinModal && joinModal) {
-    closeJoinModal.addEventListener('click', () => {
-      joinModal.style.display = 'none';
+    closeJoinModal.addEventListener("click", () => {
+      joinModal.style.display = "none";
     });
   }
   if (cancelJoin && joinModal) {
-    cancelJoin.addEventListener('click', () => {
-      joinModal.style.display = 'none';
+    cancelJoin.addEventListener("click", () => {
+      joinModal.style.display = "none";
     });
   }
   if (confirmJoin && joinModal && joinRoomInput && joinNameInput) {
-    confirmJoin.addEventListener('click', () => {
+    confirmJoin.addEventListener("click", () => {
       const roomId = joinRoomInput.value.trim();
-      const userName = joinNameInput.value.trim() || 'Patient';
+      const userName = joinNameInput.value.trim() || "Patient";
 
       if (!roomId) {
-        if (joinModalError) joinModalError.textContent = 'Please enter a Consultation ID';
+        if (joinModalError)
+          joinModalError.textContent = "Please enter a Consultation ID";
         return;
       }
 
-      window.location.href = `room.html?room=${roomId}&name=${encodeURIComponent(userName)}`;
+      window.location.href = `room.html?room=${roomId}&name=${encodeURIComponent(
+        userName
+      )}`;
     });
   }
 
   // Close modals when clicking outside
-  window.addEventListener('click', (event) => {
+  window.addEventListener("click", (event) => {
     if (startModal && event.target === startModal) {
-      startModal.style.display = 'none';
+      startModal.style.display = "none";
     }
     if (joinModal && event.target === joinModal) {
-      joinModal.style.display = 'none';
+      joinModal.style.display = "none";
     }
   });
 
@@ -133,7 +140,9 @@ let roomId = null;
 let username = null;
 
 // DOM refs used on room page
-let chatFormEl, chatInputEl, chatMessagesEl;
+let chatFormEl,
+  chatInputEl,
+  chatMessagesEl;
 let participantsListEl;
 let btnMic, btnCam, btnScreen, btnLeave, btnRaise;
 let btnParticipants, btnChat, btnCloseSidebar;
@@ -151,6 +160,8 @@ let unreadChatCount = 0;
 const iceServers = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302"] },
+    { urls: ["stun:stun1.l.google.com:19302"] },
+    { urls: ["stun:stun2.l.google.com:19302"] },
     {
       urls: "turn:openrelay.metered.ca:80",
       username: "openrelayproject",
@@ -166,7 +177,7 @@ const iceServers = {
 
 async function initRoomPage() {
   console.log("Initializing Room Page...");
-  
+
   const params = new URLSearchParams(window.location.search);
   roomId = params.get("room");
   username = params.get("name") || "Guest";
@@ -200,8 +211,25 @@ async function initRoomPage() {
 
   chatUnreadBadgeEl = document.getElementById("chatUnreadBadge");
 
-  // Socket
+  // Socket – connect to same origin
   socket = io();
+
+  socket.on("connect", () => {
+    console.log("Socket connected:", socket.id);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.error("Socket connect_error:", err);
+    alert("Unable to connect to signaling server.");
+  });
+
+  // Handle server-side error events
+  socket.on("error", (err) => {
+    console.error("Server error:", err);
+    if (err && err.message) {
+      alert(err.message);
+    }
+  });
 
   registerSocketEvents();
 
@@ -263,6 +291,7 @@ async function initLocalMedia() {
 
 function registerSocketEvents() {
   socket.on("existing-users", (users) => {
+    console.log("existing-users:", users);
     if (!users) return;
     Object.entries(users).forEach(([id, name]) => {
       if (!peers[id]) peers[id] = {};
@@ -272,12 +301,14 @@ function registerSocketEvents() {
   });
 
   socket.on("user-joined", ({ socketId, name }) => {
+    console.log("user-joined:", socketId, name);
     if (!peers[socketId]) peers[socketId] = {};
     peers[socketId].username = name;
     createPeerConnection(socketId, false);
   });
 
   socket.on("offer", async ({ offer, senderId }) => {
+    console.log("offer from:", senderId);
     if (!peers[senderId]) peers[senderId] = {};
     createPeerConnection(senderId, false);
 
@@ -294,6 +325,7 @@ function registerSocketEvents() {
   });
 
   socket.on("answer", async ({ answer, senderId }) => {
+    console.log("answer from:", senderId);
     const pc = peers[senderId]?.pc;
     if (!pc) return;
     try {
@@ -314,10 +346,12 @@ function registerSocketEvents() {
   });
 
   socket.on("user-left", (socketId) => {
+    console.log("user-left:", socketId);
     removePeer(socketId);
   });
 
   socket.on("room-users", (users) => {
+    console.log("room-users:", users);
     updateParticipants(users);
   });
 
@@ -340,12 +374,15 @@ function registerSocketEvents() {
   });
 
   socket.on("hand-raise", ({ socketId: sId, username: uname, raised }) => {
-    const labelText = `${uname} has ${raised ? "raised" : "lowered"} their hand ✋`;
+    const labelText = `${uname} has ${
+      raised ? "raised" : "lowered"
+    } their hand ✋`;
     addChatMessage("System", labelText);
 
-    const targetTile = sId === socket.id
-      ? document.querySelector(".local-tile")
-      : remoteVideoElements[sId];
+    const targetTile =
+      sId === socket.id
+        ? document.querySelector(".local-tile")
+        : remoteVideoElements[sId];
 
     if (targetTile) {
       targetTile.classList.toggle("hand-raised", raised);
@@ -384,6 +421,7 @@ function createPeerConnection(remoteId, isInitiator) {
 
   if (peers[remoteId].pc instanceof RTCPeerConnection) return;
 
+  console.log("Creating peer connection to", remoteId, "initiator:", isInitiator);
   const pc = new RTCPeerConnection(iceServers);
   peers[remoteId].pc = pc;
 
@@ -403,6 +441,7 @@ function createPeerConnection(remoteId, isInitiator) {
   };
 
   pc.ontrack = (event) => {
+    console.log("ontrack from", remoteId);
     const stream = event.streams[0];
     if (!stream) return;
 
@@ -437,6 +476,7 @@ function createPeerConnection(remoteId, isInitiator) {
   };
 
   pc.onconnectionstatechange = () => {
+    console.log("PC state for", remoteId, ":", pc.connectionState);
     if (
       pc.connectionState === "failed" ||
       pc.connectionState === "closed" ||
@@ -515,6 +555,7 @@ function resetScreenShareLayout() {
 // ===============================
 
 function removePeer(socketId) {
+  console.log("Removing peer", socketId);
   if (peers[socketId]?.pc) {
     try {
       peers[socketId].pc.close();
@@ -771,15 +812,21 @@ function setupSidebar() {
   const openChat = () => openSidebar("chat");
   const closeSidebarFn = () => closeSidebar();
 
-  if (btnParticipants) btnParticipants.addEventListener("click", openParticipants);
+  if (btnParticipants)
+    btnParticipants.addEventListener("click", openParticipants);
   if (btnChat) btnChat.addEventListener("click", openChat);
-  if (btnCloseSidebar) btnCloseSidebar.addEventListener("click", closeSidebarFn);
+  if (btnCloseSidebar)
+    btnCloseSidebar.addEventListener("click", closeSidebarFn);
 
   if (sidebarTabParticipants) {
-    sidebarTabParticipants.addEventListener("click", () => switchSidebarTab("participants"));
+    sidebarTabParticipants.addEventListener("click", () =>
+      switchSidebarTab("participants")
+    );
   }
   if (sidebarTabChat) {
-    sidebarTabChat.addEventListener("click", () => switchSidebarTab("chat"));
+    sidebarTabChat.addEventListener("click", () =>
+      switchSidebarTab("chat")
+    );
   }
 }
 
@@ -822,7 +869,7 @@ function switchSidebarTab(tab) {
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body.dataset.page;
   console.log("Detected page:", page);
-  
+
   if (page === "home") {
     initHomePage();
   } else if (page === "room") {
@@ -830,9 +877,9 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.log("No page detected, running default initialization");
     // If no data-page attribute, check which page we're on by elements
-    if (document.getElementById('startConsultationBtn')) {
+    if (document.getElementById("startConsultationBtn")) {
       initHomePage();
-    } else if (document.getElementById('remoteVideos')) {
+    } else if (document.getElementById("remoteVideos")) {
       initRoomPage();
     }
   }
